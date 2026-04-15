@@ -1,0 +1,3 @@
+CREATE USER 'printia_user'@'localhost' IDENTIFIED BY 'printia2026';
+GRANT SELECT, INSERT, UPDATE, DELETE ON printia.* TO 'printia_user'@'localhost';
+FLUSH PRIVILEGES;
