@@ -4,26 +4,27 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
 
 class Usuario(UserMixin, db.Model):
-    __tablename__ = 'usuarios'  # nombre exacto de tu tabla en MySQL
+    __tablename__ = 'usuarios'
     
     id_usuario = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
-    clave = db.Column(db.String(255), nullable=False)  # guarda el HASH, no la clave
+    clave = db.Column(db.String(255), nullable=False)
     nombre_usuario = db.Column(db.String(50), nullable=False)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
-    es_admin = db.Column(db.Boolean, default=False)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    es_admin = db.Column(db.Boolean, default=False, nullable=False)
     imagen = db.Column(db.String(255), nullable=True)
     
+    # Relaciones
+    modelos = db.relationship('Modelo', backref='creador', lazy=True)
+    suscripciones = db.relationship('Suscripcion', backref='usuario', lazy=True)
+    valoraciones = db.relationship('Valoracion', backref='usuario', lazy=True)
+
     def set_password(self, password_plano):
-        """Hashea la contraseña antes de guardarla."""
         self.clave = generate_password_hash(password_plano)
     
     def check_password(self, password_plano):
-        """Verifica si la contraseña ingresada coincide con el hash."""
         return check_password_hash(self.clave, password_plano)
     
-    # Flask-Login necesita saber cuál es el ID. Como tu columna se llama
-    # id_usuario y no id, sobrescribimos el método get_id.
     def get_id(self):
         return str(self.id_usuario)
     
@@ -33,8 +34,65 @@ class Usuario(UserMixin, db.Model):
             return url_for('static', filename=f'uploads/avatars/{self.imagen}')
         return None
 
+class Modelo(db.Model):
+    __tablename__ = 'modelos'
 
-# Flask-Login necesita esta función para recuperar usuarios por ID
+    id_modelo = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id_usuario', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
+    prompt_texto = db.Column(db.String(255), nullable=False)
+    titulo = db.Column(db.String(255), nullable=False)
+    archivo_url = db.Column(db.String(255), nullable=True)
+    imagen_url = db.Column(db.String(255), nullable=True)
+    es_publico = db.Column(db.Boolean, default=False, nullable=False)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relaciones
+    metricas = db.relationship('Metrica', backref='modelo', lazy=True)
+    valoraciones = db.relationship('Valoracion', backref='modelo_evaluado', lazy=True)
+
+class Metrica(db.Model):
+    __tablename__ = 'metricas'
+
+    id_metrica = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_modelo = db.Column(db.Integer, db.ForeignKey('modelos.id_modelo', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
+    duracion = db.Column(db.Numeric(8, 2), nullable=True)
+    detalle_error = db.Column(db.String(255), nullable=True)
+    exitoso = db.Column(db.Boolean, nullable=True)
+    fecha_generacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Plan(db.Model):
+    __tablename__ = 'planes'
+
+    id_plan = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    nombre_plan = db.Column(db.String(50), nullable=False)
+    limite_exportaciones_mensual = db.Column(db.Integer, nullable=False)
+    precio = db.Column(db.Numeric(10, 2), nullable=False)
+
+    suscripciones = db.relationship('Suscripcion', backref='plan', lazy=True)
+
+class Suscripcion(db.Model):
+    __tablename__ = 'suscripciones'
+
+    id_suscripcion = db.Column(db.Integer, primary_key=True)
+    id_plan = db.Column(db.Integer, db.ForeignKey('planes.id_plan', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id_usuario', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=False)
+    estado = db.Column(db.String(50), nullable=True)
+    metodo_pago = db.Column(db.String(255), nullable=True)
+    modelos_restantes = db.Column(db.Integer, nullable=False)
+
+class Valoracion(db.Model):
+    __tablename__ = 'valoraciones'
+
+    id_valoracion = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_modelo = db.Column(db.Integer, db.ForeignKey('modelos.id_modelo', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id_usuario', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
+    puntuacion = db.Column(db.Integer, nullable=False)
+    comentario = db.Column(db.String(255), nullable=True)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(int(user_id))

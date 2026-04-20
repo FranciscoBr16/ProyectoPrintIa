@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Planes - PrintIA Solutions{% endblock %}
+
+{% block content %}
+<main class="page-container">
+    <h1 class="page-title text-center">Desbloquea todo el potencial de la impresión 3D con IA.</h1>
+
+    <div class="planes-grid">
+        <!-- Plan Gratis -->
+        <div class="plan-card">
+            <div class="plan-header">
+                <h2 class="plan-title">GRATIS</h2>
+            </div>
+            <ul class="plan-features">
+                <li>Acceso al generador de IA estándar.</li>
+                <li>3 Exportaciones (.STL) por mes.</li>
+                <li>Calidad de modelo estándar.</li>
+                <li>Acceso a la Galería Comunitaria.</li>
+                <li>Historial limitado (últimos 10 modelos).</li>
+            </ul>
+            <div class="plan-footer">
+                <button class="btn btn--plan-current">PLAN ACTUAL</button>
+            </div>
+        </div>
+
+        <!-- Plan Pro -->
+        <div class="plan-card">
+            <div class="plan-header">
+                <h2 class="plan-title">PRO</h2>
+                <p class="plan-price">$9.99 / mes</p>
+            </div>
+            <ul class="plan-features">
+                <li>Generación de IA con Prioridad<br>(Mayor velocidad)</li>
+                <li>Exportaciones Ilimitadas.</li>
+                <li>Modelos de Alta Resolución y mayor detalle.</li>
+                <li>Controles avanzados (relleno, soportes, tipo de impresora).</li>
+                <li>Historial ilimitado.</li>
+            </ul>
+            <div class="plan-footer">
+                <button class="btn btn--primary btn--full" style="font-size: 1.1rem; padding: 16px;">ACTUALIZAR A PRO</button>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

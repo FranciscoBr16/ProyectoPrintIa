@@ -1,0 +1,56 @@
+{% extends "dashboard_layout.html" %}
+
+{% block dashboard_content %}
+<div class="visor-container">
+    <div class="visor-3d-wrapper">
+        <!-- Acá iría la integración real con model-viewer o Three.js -->
+        <!-- Por ahora simulamos la vista del modelo -->
+        <div class="visor-3d-mock">
+            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="1.5">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <p style="color: #64696C; font-weight: 700; margin-top: 10px;">{{ modelo.titulo }}</p>
+        </div>
+    </div>
+
+    <div class="visor-info-panel">
+        <div class="visor-column">
+            <h3 class="visor-subtitle">Dimensiones</h3>
+            <div class="visor-dims">
+                <div class="dim-row">
+                    <span class="dim-label">X</span>
+                    <span class="dim-value">9</span>
+                    <span class="dim-unit">cm</span>
+                </div>
+                <div class="dim-row">
+                    <span class="dim-label">Y</span>
+                    <span class="dim-value">3</span>
+                    <span class="dim-unit">cm</span>
+                </div>
+                <div class="dim-row">
+                    <span class="dim-label">Z</span>
+                    <span class="dim-value">3</span>
+                    <span class="dim-unit">cm</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="visor-column">
+            <h3 class="visor-subtitle">Recomendaciones de Impresión</h3>
+            <ul class="visor-recs">
+                <li>Mantener escala</li>
+                <li>Material de Impresion: PLA</li>
+                <li>Relleno: 20%</li>
+                <li>Soporte: No Necesario</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="visor-actions">
+        <button class="btn btn--secondary btn--large">Modificar Modelo</button>
+        <button class="btn btn--primary btn--large" onclick="alert('Descargando STL...')">Descargar STL</button>
+    </div>
+</div>
+{% endblock %}

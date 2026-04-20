@@ -25,10 +25,10 @@
 
         <ul class="navbar__links">
             <li><a href="{{ url_for('auth.index') }}" class="navbar__link {% if request.endpoint == 'auth.index' %}navbar__link--active{% endif %}">Home</a></li>
-            <li><a href="#" class="navbar__link">Crear</a></li>
-            <li><a href="#" class="navbar__link">Explorar</a></li>
-            <li><a href="#" class="navbar__link">Planes</a></li>
-            <li><a href="#" class="navbar__link">Como funciona</a></li>
+            <li><a href="{{ url_for('main.generador') }}" class="navbar__link {% if request.endpoint == 'main.generador' %}navbar__link--active{% endif %}">Crear</a></li>
+            <li><a href="{{ url_for('main.galeria') }}" class="navbar__link {% if request.endpoint == 'main.galeria' %}navbar__link--active{% endif %}">Explorar</a></li>
+            <li><a href="{{ url_for('main.planes') }}" class="navbar__link {% if request.endpoint == 'main.planes' %}navbar__link--active{% endif %}">Planes</a></li>
+            <li><a href="{{ url_for('main.como_funciona') }}" class="navbar__link {% if request.endpoint == 'main.como_funciona' %}navbar__link--active{% endif %}">Como funciona</a></li>
         </ul>
 
         {% if current_user.is_authenticated %}
@@ -40,7 +40,7 @@
                     <span class="navbar__avatar-initial">{{ current_user.nombre_usuario[0]|upper }}</span>
                 {% endif %}
             </div>
-            <span class="navbar__user-name">{{ current_user.nombre_usuario }}</span>
+            <a href="{{ url_for('main.perfil') }}" class="navbar__user-name" style="text-decoration: none;">{{ current_user.nombre_usuario }}</a>
             <a href="{{ url_for('auth.logout') }}" class="btn btn--primary">Cerrar sesión</a>
         </div>
     {% else %}
