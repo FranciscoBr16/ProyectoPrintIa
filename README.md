@@ -34,7 +34,7 @@ El sistema integra inteligencia artificial para interpretar las descripciones de
 |---|---|
 | Francisco Bruno | [@FranciscoBr16](https://github.com/FranciscoBr16) |
 | Santiago Auat | [@santiauat](https://github.com/santiauat) |
-| Victoria Garreta | *Por agregarse* |
+| Victoria Garreta | [@vickygarreta](https://github.com/vickygarreta) |
 
 ---
 

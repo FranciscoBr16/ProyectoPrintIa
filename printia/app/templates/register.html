@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Crear cuenta - PrintIA{% endblock %}
+
+{% block content %}
+<main class="auth-page">
+    <div class="auth-card">
+        <h1 class="auth-card__title">Crear cuenta</h1>
+        <p class="auth-card__subtitle">Empezá a generar tus modelos 3D</p>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="nombre_usuario" class="form-label">Nombre de usuario</label>
+                <input type="text" id="nombre_usuario" name="nombre_usuario" class="form-input" required autofocus maxlength="50">
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" id="email" name="email" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Contraseña</label>
+                <input type="password" id="password" name="password" class="form-input" required minlength="6">
+                <small class="form-hint">Mínimo 6 caracteres</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Foto de perfil <span class="form-hint-inline">(opcional)</span></label>
+                <div class="avatar-upload">
+                    <div class="avatar-preview" id="avatarPreview">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <div class="avatar-upload__controls">
+                        <label for="imagen" class="btn btn--secondary">Elegir imagen</label>
+                        <input type="file" id="imagen" name="imagen" accept="image/png,image/jpeg,image/webp" class="avatar-input">
+                        <small class="form-hint">PNG, JPG o WEBP · Máx 2 MB</small>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--full">Crear cuenta</button>
+        </form>
+
+        <p class="auth-card__footer">
+            ¿Ya tenés cuenta? <a href="{{ url_for('auth.login') }}" class="auth-link">Iniciá sesión</a>
+        </p>
+    </div>
+</main>
+
+<script>
+    // Preview de la imagen antes de enviar el form
+    const input = document.getElementById('imagen');
+    const preview = document.getElementById('avatarPreview');
+    
+    input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Validación de tamaño en el cliente (también se valida en el server)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('La imagen supera los 2 MB.');
+            input.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            preview.innerHTML = `<img src="${ev.target.result}" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
+    });
+</script>
+{% endblock %}

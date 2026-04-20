@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar sesión - PrintIA{% endblock %}
+
+{% block content %}
+<main class="auth-page">
+    <div class="auth-card">
+        <h1 class="auth-card__title">Iniciar sesión</h1>
+        <p class="auth-card__subtitle">Bienvenido de vuelta</p>
+
+        <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
+            <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" id="email" name="email" class="form-input" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Contraseña</label>
+                <input type="password" id="password" name="password" class="form-input" required>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--full">Ingresar</button>
+        </form>
+
+        <p class="auth-card__footer">
+            ¿No tenés cuenta? <a href="{{ url_for('auth.register') }}" class="auth-link">Registrate</a>
+        </p>
+    </div>
+</main>
+{% endblock %}
