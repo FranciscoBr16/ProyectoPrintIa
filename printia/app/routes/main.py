@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app import db
-from app.models import Modelo, Metrica
+from app.models import Modelo, Metrica, Usuario
+from app.utils import guardar_avatar, eliminar_avatar
 import time
 import random
 
@@ -76,3 +77,59 @@ def como_funciona():
 @login_required
 def perfil():
     return render_template('perfil.html')
+
+@main_bp.route('/perfil/editar', methods=['GET', 'POST'])
+@login_required
+def editar_perfil():
+    if request.method == 'POST':
+        nombre_usuario = request.form.get('nombre_usuario')
+        email = request.form.get('email')
+        imagen = request.files.get('imagen')
+        
+        password_actual = request.form.get('password_actual')
+        nueva_password = request.form.get('nueva_password')
+        confirmar_password = request.form.get('confirmar_password')
+        
+        # Validar si el email ya existe en otro usuario
+        usuario_existente = Usuario.query.filter(Usuario.email == email, Usuario.id_usuario != current_user.id_usuario).first()
+        if usuario_existente:
+            flash('El correo electrónico ya está en uso por otra cuenta.', 'error')
+            return redirect(url_for('main.editar_perfil'))
+        
+        # Procesar cambio de contraseña si envió algo
+        if password_actual or nueva_password or confirmar_password:
+            if not password_actual:
+                flash('Debes ingresar tu contraseña actual para cambiarla.', 'error')
+                return redirect(url_for('main.editar_perfil'))
+            if not current_user.check_password(password_actual):
+                flash('La contraseña actual es incorrecta.', 'error')
+                return redirect(url_for('main.editar_perfil'))
+            if nueva_password != confirmar_password:
+                flash('Las contraseñas nuevas no coinciden.', 'error')
+                return redirect(url_for('main.editar_perfil'))
+            if len(nueva_password) < 6:
+                flash('La nueva contraseña debe tener al menos 6 caracteres.', 'error')
+                return redirect(url_for('main.editar_perfil'))
+                
+            current_user.set_password(nueva_password)
+        
+        current_user.nombre_usuario = nombre_usuario
+        current_user.email = email
+        
+        # Procesar nueva imagen de perfil
+        if imagen and imagen.filename != '':
+            nombre_archivo = guardar_avatar(imagen, current_user.id_usuario)
+            if nombre_archivo:
+                # Eliminar la imagen vieja si tenía una
+                if current_user.imagen:
+                    eliminar_avatar(current_user.imagen)
+                current_user.imagen = nombre_archivo
+            else:
+                flash('Archivo de imagen no válido. Formatos permitidos: png, jpg, jpeg, webp.', 'error')
+                return redirect(url_for('main.editar_perfil'))
+                
+        db.session.commit()
+        flash('Datos actualizados exitosamente.', 'success')
+        return redirect(url_for('main.perfil'))
+        
+    return render_template('editar_perfil.html')

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Perfil - PrintIA Solutions{% endblock %}
+
+{% block content %}
+<main class="page-container" style="display: flex; justify-content: center;">
+    <div class="perfil-card">
+        <div class="perfil-header" style="margin-bottom: 24px;">
+            <h1 class="perfil-name">Editar Datos</h1>
+        </div>
+
+        <form action="{{ url_for('main.editar_perfil') }}" method="POST" enctype="multipart/form-data" class="auth-form" style="max-width: 100%; box-shadow: none; padding: 0;">
+            <div class="form-group" style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+                <div class="perfil-avatar-large">
+                    {% if current_user.avatar_url() %}
+                        <img src="{{ current_user.avatar_url() }}" alt="Avatar">
+                    {% else %}
+                        <span>{{ current_user.nombre_usuario[0]|upper }}</span>
+                    {% endif %}
+                </div>
+                <label for="imagen" class="btn btn--secondary" style="cursor: pointer;">Cambiar Imagen</label>
+                <input type="file" id="imagen" name="imagen" accept="image/png, image/jpeg, image/jpg, image/webp" style="display: none;">
+            </div>
+
+            <div class="form-group">
+                <label for="nombre_usuario" class="form-label">Nombre de Usuario</label>
+                <input type="text" id="nombre_usuario" name="nombre_usuario" class="form-input" value="{{ current_user.nombre_usuario }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">Correo Electrónico</label>
+                <input type="email" id="email" name="email" class="form-input" value="{{ current_user.email }}" required>
+            </div>
+
+            <hr style="width: 100%; border: 1px solid var(--color-page-bg); margin: 24px 0;">
+            <h3 style="align-self: flex-start; margin-bottom: 16px;">Cambiar Contraseña (opcional)</h3>
+
+            <div class="form-group">
+                <label for="password_actual" class="form-label">Contraseña actual</label>
+                <input type="password" id="password_actual" name="password_actual" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="nueva_password" class="form-label">Modificar contraseña</label>
+                <input type="password" id="nueva_password" name="nueva_password" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmar_password" class="form-label">Repetir contraseña</label>
+                <input type="password" id="confirmar_password" name="confirmar_password" class="form-input">
+            </div>
+
+            <div class="perfil-actions" style="margin-top: 32px; gap: 16px; display: flex; width: 100%;">
+                <a href="{{ url_for('main.perfil') }}" class="btn" style="flex: 1; text-align: center; background-color: transparent; border: 2px solid var(--color-primary); color: var(--color-primary); padding: 16px; border-radius: 999px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center;">Cancelar</a>
+                <button type="submit" class="btn btn--primary" style="flex: 2; padding: 16px; border-radius: 999px; font-weight: 700; font-size: 1.1rem;">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}
