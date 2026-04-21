@@ -74,7 +74,7 @@ class Plan(db.Model):
 class Suscripcion(db.Model):
     __tablename__ = 'suscripciones'
 
-    id_suscripcion = db.Column(db.Integer, primary_key=True)
+    id_suscripcion = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_plan = db.Column(db.Integer, db.ForeignKey('planes.id_plan', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id_usuario', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
     fecha_inicio = db.Column(db.Date, nullable=False)

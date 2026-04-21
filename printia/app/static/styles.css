@@ -160,7 +160,7 @@ a {
 }
 
 .hero__title {
-    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-size: clamp(4rem, 8vw, 7.5rem);
     font-weight: 900;
     line-height: 1.05;
     color: var(--color-text);
@@ -168,7 +168,7 @@ a {
 }
 
 .hero__image {
-    flex: 1;
+    flex: 1.2;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -177,10 +177,9 @@ a {
 
 .hero__image img {
     max-width: 100%;
-    max-height: 520px;
+    max-height: 700px;
     object-fit: contain;
     filter: drop-shadow(0 16px 40px rgba(0,0,0,0.12));
-    mix-blend-mode: multiply;
 }
 
 /* ================================================
@@ -238,6 +237,7 @@ a {
     font-weight: 700;
     font-size: 0.9rem;
     color: var(--color-white);
+    background-color: var(--color-text);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     animation: slideInRight 0.3s ease;
 }

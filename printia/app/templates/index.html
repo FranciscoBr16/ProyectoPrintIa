@@ -5,15 +5,17 @@
 {% block content %}
 <main class="hero">
     <div class="hero__content">
-        <h1 class="hero__title">Del texto a<br>la realidad</h1>
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('main.generador') }}" class="btn btn--primary btn--large">Empezar a crear</a>
-        {% else %}
-            <a href="{{ url_for('auth.login') }}" class="btn btn--primary btn--large">Empezar a crear</a>
-        {% endif %}
+        <div style="display: flex; flex-direction: column; gap: 36px; width: max-content;">
+            <h1 class="hero__title">Del texto a<br>la realidad</h1>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.generador') }}" class="btn btn--primary btn--large" style="width: 100%; text-align: center; font-size: 1.2rem;">Empezar a crear</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn--primary btn--large" style="width: 100%; text-align: center; font-size: 1.2rem;">Empezar a crear</a>
+            {% endif %}
+        </div>
     </div>
     <div class="hero__image">
-        <img src="{{ url_for('static', filename='assets/printer-hero.png') }}" alt="Impresora 3D con modelo generado por IA" />
+        <img src="{{ url_for('static', filename='assets/logini-sin-fondo.png') }}" alt="Generación 3D con IA" />
     </div>
 </main>
 {% endblock %}

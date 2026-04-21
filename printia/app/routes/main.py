@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app import db
-from app.models import Modelo, Metrica, Usuario
+from app.models import Modelo, Metrica, Usuario, Plan, Suscripcion
 from app.utils import guardar_avatar, eliminar_avatar
 import time
+import datetime
 import random
 
 main_bp = Blueprint('main', __name__)
@@ -76,7 +77,14 @@ def como_funciona():
 @main_bp.route('/perfil')
 @login_required
 def perfil():
-    return render_template('perfil.html')
+    from app.models import Suscripcion, Plan
+    suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
+    plan_nombre = 'GRATIS'
+    if suscripcion:
+        plan = Plan.query.get(suscripcion.id_plan)
+        if plan:
+            plan_nombre = plan.nombre_plan
+    return render_template('perfil.html', plan_nombre=plan_nombre, suscripcion=suscripcion)
 
 @main_bp.route('/perfil/editar', methods=['GET', 'POST'])
 @login_required
@@ -133,3 +141,49 @@ def editar_perfil():
         return redirect(url_for('main.perfil'))
         
     return render_template('editar_perfil.html')
+
+@main_bp.route('/checkout', methods=['GET', 'POST'])
+@login_required
+def checkout():
+    if request.method == 'POST':
+        # Buscamos o creamos el plan PRO
+        plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
+        if not plan_pro:
+            plan_pro = Plan(nombre_plan='PRO', limite_exportaciones_mensual=-1, precio=9.99)
+            db.session.add(plan_pro)
+            db.session.commit()
+            
+        # Actualizamos o creamos la suscripción del usuario
+        suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario).first()
+        hoy = datetime.date.today()
+        vencimiento = hoy + datetime.timedelta(days=30)
+        
+        if suscripcion:
+            suscripcion.id_plan = plan_pro.id_plan
+            suscripcion.fecha_inicio = hoy
+            suscripcion.fecha_fin = vencimiento
+            suscripcion.estado = 'Activa'
+            suscripcion.metodo_pago = 'Tarjeta'
+            suscripcion.modelos_restantes = plan_pro.limite_exportaciones_mensual
+        else:
+            # Generamos el ID manualmente por si la tabla no tiene AUTO_INCREMENT
+            max_id = db.session.query(db.func.max(Suscripcion.id_suscripcion)).scalar() or 0
+            
+            nueva_suscripcion = Suscripcion(
+                id_suscripcion=max_id + 1,
+                id_plan=plan_pro.id_plan,
+                id_usuario=current_user.id_usuario,
+                fecha_inicio=hoy,
+                fecha_fin=vencimiento,
+                estado='Activa',
+                metodo_pago='Tarjeta',
+                modelos_restantes=plan_pro.limite_exportaciones_mensual
+            )
+            db.session.add(nueva_suscripcion)
+            
+        db.session.commit()
+        
+        flash('¡Pago exitoso! Ahora eres usuario PRO.', 'success')
+        return redirect(url_for('main.planes'))
+        
+    return render_template('checkout.html')
