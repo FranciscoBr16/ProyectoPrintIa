@@ -6,6 +6,8 @@
     <title>{% block title %}PrintIA Solutions{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Model-viewer: 3D interactive viewer component -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
 <body>
 
@@ -19,7 +21,7 @@
         <ul class="navbar__links">
             <li><a href="{{ url_for('auth.index') }}" class="navbar__link {% if request.endpoint == 'auth.index' %}navbar__link--active{% endif %}">Home</a></li>
             <li><a href="{{ url_for('main.generador') }}" class="navbar__link {% if request.endpoint == 'main.generador' %}navbar__link--active{% endif %}">Crear</a></li>
-            <li><a href="{{ url_for('main.galeria') }}" class="navbar__link {% if request.endpoint == 'main.galeria' %}navbar__link--active{% endif %}">Explorar</a></li>
+            <li><a href="{{ url_for('main.explorar') }}" class="navbar__link {% if request.endpoint == 'main.explorar' %}navbar__link--active{% endif %}">Explorar</a></li>
             <li><a href="{{ url_for('main.planes') }}" class="navbar__link {% if request.endpoint == 'main.planes' %}navbar__link--active{% endif %}">Planes</a></li>
             <li><a href="{{ url_for('main.como_funciona') }}" class="navbar__link {% if request.endpoint == 'main.como_funciona' %}navbar__link--active{% endif %}">Como funciona</a></li>
         </ul>
@@ -53,6 +55,31 @@
     {% endwith %}
 
     {% block content %}{% endblock %}
+
+    <footer class="footer">
+        <div class="footer__container">
+            <div class="footer__brand">
+                <div class="footer__logo">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="PrintIA Logo" width="32" style="mix-blend-mode: multiply;">
+                    <span>PrintIA Solutions</span>
+                </div>
+                <p class="footer__desc">Transformando tus ideas en modelos 3D listos para imprimir con el poder de la Inteligencia Artificial.</p>
+            </div>
+            
+            <div class="footer__links-group">
+                <h4 class="footer__title">Explorar</h4>
+                <ul class="footer__links">
+                    <li><a href="{{ url_for('auth.index') }}">Home</a></li>
+                    <li><a href="{{ url_for('main.generador') }}">Crear Modelo</a></li>
+                    <li><a href="{{ url_for('main.galeria') }}">Galería</a></li>
+                    <li><a href="{{ url_for('main.planes') }}">Planes</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer__bottom">
+            <p>&copy; 2026 PrintIA Solutions. Todos los derechos reservados.</p>
+        </div>
+    </footer>
 
 </body>
 </html>

@@ -20,7 +20,11 @@
                 <li>Historial limitado (últimos 10 modelos).</li>
             </ul>
             <div class="plan-footer">
-                <button class="btn btn--plan-current">PLAN ACTUAL</button>
+                {% if plan_nombre == 'GRATIS' %}
+                    <button class="btn btn--plan-current">PLAN ACTUAL</button>
+                {% else %}
+                    <a href="#" class="btn btn--secondary btn--full" style="opacity: 0.5; cursor: default;">PLAN BÁSICO</a>
+                {% endif %}
             </div>
         </div>
 
@@ -38,7 +42,11 @@
                 <li>Historial ilimitado.</li>
             </ul>
             <div class="plan-footer">
-                <a href="{{ url_for('main.checkout') }}" class="btn btn--primary btn--full" style="font-size: 1.1rem; padding: 16px; text-align: center;">ACTUALIZAR A PRO</a>
+                {% if plan_nombre == 'PRO' %}
+                    <button class="btn btn--plan-current">PLAN ACTUAL</button>
+                {% else %}
+                    <a href="{{ url_for('main.checkout') }}" class="btn btn--primary btn--full" style="font-size: 1.1rem; padding: 16px; text-align: center;">ACTUALIZAR A PRO</a>
+                {% endif %}
             </div>
         </div>
     </div>

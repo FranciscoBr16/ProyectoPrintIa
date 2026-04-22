@@ -2,7 +2,13 @@
 
 {% block dashboard_content %}
 <div class="galeria-view">
-    <h2 class="galeria-title">Mi Galería</h2>
+    <div class="explorar-header">
+        <h2 class="galeria-title">Explorar Comunidad</h2>
+        <form action="{{ url_for('main.explorar') }}" method="GET" class="search-form">
+            <input type="text" name="q" placeholder="Buscar modelos..." value="{{ search_query }}" class="search-input">
+            <button type="submit" class="btn btn--primary">Buscar</button>
+        </form>
+    </div>
     
     <div class="galeria-grid">
         {% if modelos %}
@@ -18,21 +24,21 @@
                 <div class="modelo-card__info">
                     <h3 class="modelo-card__title">{{ modelo.titulo }}</h3>
                     <div class="modelo-card__meta">
+                        <span class="modelo-author">Por: {{ modelo.creador.nombre_usuario }}</span>
                         <span class="modelo-date">{{ modelo.fecha_creacion.strftime('%d/%m/%Y') }}</span>
-                        {% if modelo.es_publico %}
-                            <span class="badge badge--public">Público</span>
-                        {% else %}
-                            <span class="badge badge--private">Privado</span>
-                        {% endif %}
                     </div>
-                    <a href="{{ url_for('main.modelo', id_modelo=modelo.id_modelo) }}" class="btn btn--primary" style="margin-top: 10px;">Ver Modelo</a>
+                    <a href="{{ url_for('main.modelo', id_modelo=modelo.id_modelo) }}" class="btn btn--secondary btn--full">Ver Detalles</a>
                 </div>
             </div>
             {% endfor %}
         {% else %}
             <div class="galeria-empty">
-                <p>Aún no tienes modelos generados.</p>
-                <a href="{{ url_for('main.generador') }}" class="btn btn--primary">Crear mi primer modelo</a>
+                {% if search_query %}
+                    <p>No se encontraron modelos para "{{ search_query }}".</p>
+                    <a href="{{ url_for('main.explorar') }}" class="btn btn--primary">Ver todos</a>
+                {% else %}
+                    <p>Aún no hay modelos públicos en la comunidad.</p>
+                {% endif %}
             </div>
         {% endif %}
     </div>

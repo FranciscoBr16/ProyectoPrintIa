@@ -3,15 +3,18 @@
 {% block dashboard_content %}
 <div class="visor-container">
     <div class="visor-3d-wrapper">
-        <!-- Acá iría la integración real con model-viewer o Three.js -->
-        <!-- Por ahora simulamos la vista del modelo -->
-        <div class="visor-3d-mock">
-            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#2C3E50" stroke-width="1.5">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-            <p style="color: #64696C; font-weight: 700; margin-top: 10px;">{{ modelo.titulo }}</p>
+        <model-viewer 
+            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
+            alt="Modelo 3D de {{ modelo.titulo }}" 
+            auto-rotate 
+            camera-controls 
+            shadow-intensity="1" 
+            ar 
+            touch-action="pan-y"
+            class="visor-3d-real">
+        </model-viewer>
+        <div class="visor-model-title">
+            <p>{{ modelo.titulo }}</p>
         </div>
     </div>
 
@@ -49,6 +52,17 @@
     </div>
 
     <div class="visor-actions">
+        {% if current_user.id_usuario == modelo.id_usuario %}
+            <form action="{{ url_for('main.toggle_public', id_modelo=modelo.id_modelo) }}" method="POST" style="width: 100%;">
+                <button type="submit" class="btn btn--secondary btn--large" style="width: 100%;">
+                    {% if modelo.es_publico %}
+                        🔒 Hacer Privado
+                    {% else %}
+                        🌐 Publicar en Comunidad
+                    {% endif %}
+                </button>
+            </form>
+        {% endif %}
         <button class="btn btn--secondary btn--large">Modificar Modelo</button>
         <button class="btn btn--primary btn--large" onclick="alert('Descargando STL...')">Descargar STL</button>
     </div>

@@ -9,17 +9,77 @@ import random
 
 main_bp = Blueprint('main', __name__)
 
+@main_bp.route('/dashboard')
+@login_required
+def dashboard():
+    # Estadísticas generales
+    total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
+    
+    # Modelos de este mes
+    primer_dia_mes = datetime.datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    modelos_mes = Modelo.query.filter(
+        Modelo.id_usuario == current_user.id_usuario,
+        Modelo.fecha_creacion >= primer_dia_mes
+    ).count()
+    
+    # Último modelo para el mini-visor
+    ultimo_modelo = Modelo.query.filter_by(id_usuario=current_user.id_usuario).order_by(Modelo.fecha_creacion.desc()).first()
+    
+    # Información de suscripción
+    suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
+    plan_nombre = 'GRATIS'
+    limite_gratis = 5
+    creditos_restantes = max(0, limite_gratis - total_modelos)
+    
+    if suscripcion:
+        plan = Plan.query.get(suscripcion.id_plan)
+        if plan:
+            plan_nombre = plan.nombre_plan
+            if plan_nombre == 'PRO':
+                creditos_restantes = -1 # Ilimitado
+            else:
+                creditos_restantes = suscripcion.modelos_restantes
+
+    return render_template('dashboard.html', 
+                           total_modelos=total_modelos, 
+                           modelos_mes=modelos_mes, 
+                           ultimo_modelo=ultimo_modelo,
+                           plan_nombre=plan_nombre,
+                           creditos_restantes=creditos_restantes)
+
 @main_bp.route('/generador')
 @login_required
 def generador():
+    # Verificar créditos antes de dejar entrar al generador
+    total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
+    suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
+    
+    if not suscripcion and total_modelos >= 5:
+        flash('Has alcanzado el límite de 5 modelos gratuitos. ¡Pásate a PRO para seguir creando!', 'info')
+        return redirect(url_for('main.planes'))
+        
     return render_template('generador.html')
 
 @main_bp.route('/galeria')
 @login_required
 def galeria():
-    # Obtener modelos del usuario (o todos los públicos, según corresponda)
     modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).order_by(Modelo.fecha_creacion.desc()).all()
     return render_template('galeria.html', modelos=modelos)
+
+@main_bp.route('/explorar')
+def explorar():
+    q = request.args.get('q', '')
+    if q:
+        # Buscar en título o prompt si hay una consulta
+        modelos = Modelo.query.filter(
+            Modelo.es_publico == True,
+            (Modelo.titulo.like(f'%{q}%')) | (Modelo.prompt_texto.like(f'%{q}%'))
+        ).order_by(Modelo.fecha_creacion.desc()).all()
+    else:
+        # Mostrar todos los públicos por defecto
+        modelos = Modelo.query.filter_by(es_publico=True).order_by(Modelo.fecha_creacion.desc()).all()
+    
+    return render_template('explorar.html', modelos=modelos, search_query=q)
 
 @main_bp.route('/generar', methods=['POST'])
 @login_required
@@ -29,28 +89,28 @@ def generar():
         flash('Debes ingresar una descripción.', 'error')
         return redirect(url_for('main.generador'))
     
+    # Validación de seguridad: verificar créditos
+    total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
+    suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
+    
+    if not suscripcion and total_modelos >= 5:
+        flash('Límite de créditos alcanzado. Pásate a PRO para continuar.', 'error')
+        return redirect(url_for('main.planes'))
+    
     # Aquí iría la llamada real a la API de IA. Por ahora hacemos un mock.
     # Simulamos un tiempo de procesamiento
+    import time
     time.sleep(2)
     
     nuevo_modelo = Modelo(
         id_usuario=current_user.id_usuario,
         prompt_texto=prompt,
         titulo=f"Modelo basado en: {prompt[:20]}...",
-        archivo_url="mock_model.stl",  # URL del archivo 3D mock
         imagen_url="mock_image.png",   # Imagen previa mock
         es_publico=False
     )
-    db.session.add(nuevo_modelo)
-    db.session.commit()
     
-    # Guardamos también la métrica de éxito
-    metrica = Metrica(
-        id_modelo=nuevo_modelo.id_modelo,
-        duracion=2.5,
-        exitoso=True
-    )
-    db.session.add(metrica)
+    db.session.add(nuevo_modelo)
     db.session.commit()
     
     flash('¡Modelo generado exitosamente!', 'success')
@@ -66,9 +126,33 @@ def modelo(id_modelo):
         return redirect(url_for('main.galeria'))
     return render_template('modelo.html', modelo=modelo_obj)
 
+@main_bp.route('/modelo/<int:id_modelo>/toggle_public', methods=['POST'])
+@login_required
+def toggle_public(id_modelo):
+    modelo_obj = Modelo.query.get_or_404(id_modelo)
+    
+    # Verificar que el usuario actual sea el dueño
+    if modelo_obj.id_usuario != current_user.id_usuario:
+        return jsonify({'error': 'No tienes permiso para modificar este modelo.'}), 403
+    
+    # Cambiar el estado
+    modelo_obj.es_publico = not modelo_obj.es_publico
+    db.session.commit()
+    
+    status = "público" if modelo_obj.es_publico else "privado"
+    flash(f'El modelo ahora es {status}.', 'success')
+    return redirect(url_for('main.modelo', id_modelo=id_modelo))
+
 @main_bp.route('/planes')
 def planes():
-    return render_template('planes.html')
+    plan_nombre = 'GRATIS'
+    if current_user.is_authenticated:
+        suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
+        if suscripcion:
+            plan = Plan.query.get(suscripcion.id_plan)
+            if plan:
+                plan_nombre = plan.nombre_plan
+    return render_template('planes.html', plan_nombre=plan_nombre)
 
 @main_bp.route('/como-funciona')
 def como_funciona():

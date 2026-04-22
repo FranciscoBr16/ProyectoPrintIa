@@ -18,4 +18,88 @@
         <img src="{{ url_for('static', filename='assets/logini-sin-fondo.png') }}" alt="Generación 3D con IA" />
     </div>
 </main>
+
+<section class="features">
+    <div class="section-container">
+        <h2 class="section-title">¿Por qué PrintIA?</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-card__icon">🚀</div>
+                <h3 class="feature-card__title">Velocidad Increíble</h3>
+                <p>Genera modelos 3D complejos en cuestión de segundos, no horas.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon">💎</div>
+                <h3 class="feature-card__title">Alta Fidelidad</h3>
+                <p>Modelos optimizados para impresión 3D con detalles precisos.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card__icon">🧠</div>
+                <h3 class="feature-card__title">IA Inteligente</h3>
+                <p>Entiende descripciones complejas y técnicas con facilidad.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="how-it-works">
+    <div class="section-container">
+        <h2 class="section-title">Cómo funciona</h2>
+        <div class="steps-grid">
+            <div class="step">
+                <span class="step__number">01</span>
+                <h3 class="step__title">Describe</h3>
+                <p>Escribe lo que tienes en mente, desde una figura orgánica hasta una pieza técnica.</p>
+            </div>
+            <div class="step">
+                <span class="step__number">02</span>
+                <h3 class="step__title">Genera</h3>
+                <p>Nuestra IA procesa tu texto y crea un modelo 3D optimizado al instante.</p>
+            </div>
+            <div class="step">
+                <span class="step__number">03</span>
+                <h3 class="step__title">Imprime</h3>
+                <p>Descarga el archivo STL o GLB y envíalo directamente a tu impresora 3D.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="testimonials">
+    <div class="section-container">
+        <h2 class="section-title">Lo que dicen nuestros usuarios</h2>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <p class="testimonial-card__text">"PrintIA ha cambiado totalmente mi flujo de trabajo. Puedo prototipar piezas en minutos."</p>
+                <div class="testimonial-card__author">
+                    <div class="author-avatar">JD</div>
+                    <div>
+                        <span class="author-name">Juan Pérez</span>
+                        <span class="author-role">Diseñador Industrial</span>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <p class="testimonial-card__text">"La calidad de los modelos es sorprendente. Casi no necesitan post-procesamiento."</p>
+                <div class="testimonial-card__author">
+                    <div class="author-avatar">ML</div>
+                    <div>
+                        <span class="author-name">María López</span>
+                        <span class="author-role">Maker Enthusiast</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section">
+    <div class="section-container">
+        <div class="cta-card">
+            <h2 class="cta-card__title">¿Listo para dar vida a tus ideas?</h2>
+            <p class="cta-card__text">Únete a miles de creadores que ya están revolucionando la impresión 3D.</p>
+            <a href="{{ url_for('auth.register') }}" class="btn btn--primary btn--large">Registrarse Gratis</a>
+        </div>
+    </div>
+</section>
 {% endblock %}

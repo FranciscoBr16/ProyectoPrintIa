@@ -1,0 +1,99 @@
+{% extends "dashboard_layout.html" %}
+
+{% block dashboard_content %}
+<div class="dashboard-resumen">
+    <div class="welcome-header">
+        <h2 class="dashboard-title">¡Hola, {{ current_user.nombre_usuario }}! 👋</h2>
+        <p class="dashboard-subtitle">Aquí tienes un resumen de tu actividad en PrintIA.</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stats-card">
+            <div class="stats-card__icon" style="background-color: #E2F0F9; color: #3498db;">📦</div>
+            <div class="stats-card__info">
+                <span class="stats-card__label">Modelos Totales</span>
+                <span class="stats-card__value">{{ total_modelos }}</span>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-card__icon" style="background-color: #FEE2E2; color: #e74c3c;">🔥</div>
+            <div class="stats-card__info">
+                <span class="stats-card__label">Este Mes</span>
+                <span class="stats-card__value">{{ modelos_mes }}</span>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-card__icon" style="background-color: #FEF3C7; color: #f1c40f;">💎</div>
+            <div class="stats-card__info">
+                <span class="stats-card__label">Plan {{ plan_nombre }}</span>
+                <span class="stats-card__value">
+                    {% if creditos_restantes == -1 %}
+                        Ilimitados
+                    {% else %}
+                        {{ creditos_restantes }}
+                    {% endif %}
+                </span>
+                <span class="stats-card__sublabel">Créditos restantes</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-main-grid">
+        <div class="latest-model-box">
+            <h3 class="box-title">Última Creación</h3>
+            {% if ultimo_modelo %}
+                <div class="mini-visor-wrapper">
+                    <model-viewer 
+                        src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
+                        alt="Último modelo: {{ ultimo_modelo.titulo }}" 
+                        auto-rotate 
+                        camera-controls 
+                        shadow-intensity="1" 
+                        touch-action="pan-y"
+                        class="mini-visor">
+                    </model-viewer>
+                </div>
+                <div class="latest-model-info">
+                    <h4>{{ ultimo_modelo.titulo }}</h4>
+                    <p>Generado el {{ ultimo_modelo.fecha_creacion.strftime('%d/%m/%Y') }}</p>
+                    <a href="{{ url_for('main.modelo', id_modelo=ultimo_modelo.id_modelo) }}" class="btn btn--secondary btn--full">Ir al modelo</a>
+                </div>
+            {% else %}
+                <div class="empty-latest">
+                    <p>Aún no has generado ningún modelo.</p>
+                    <a href="{{ url_for('main.generador') }}" class="btn btn--primary">Empezar a crear</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="quick-actions-box">
+            <h3 class="box-title">Acciones Rápidas</h3>
+            <div class="quick-actions-list">
+                <a href="{{ url_for('main.generador') }}" class="quick-action-item">
+                    <span class="action-icon">➕</span>
+                    <div class="action-text">
+                        <strong>Nuevo Modelo</strong>
+                        <span>Crea algo increíble hoy</span>
+                    </div>
+                </a>
+                <a href="{{ url_for('main.explorar') }}" class="quick-action-item">
+                    <span class="action-icon">🌍</span>
+                    <div class="action-text">
+                        <strong>Explorar Comunidad</strong>
+                        <span>Inspírate con otros diseños</span>
+                    </div>
+                </a>
+                {% if plan_nombre != 'PRO' %}
+                <a href="{{ url_for('main.planes') }}" class="quick-action-item">
+                    <span class="action-icon">🚀</span>
+                    <div class="action-text">
+                        <strong>Mejorar Plan</strong>
+                        <span>Desbloquea exportaciones ilimitadas</span>
+                    </div>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
