@@ -18,7 +18,14 @@ class Config:
         os.path.dirname(os.path.abspath(__file__)),
         'app', 'static', 'uploads', 'avatars'
     )
-    # Extensiones permitidas
+    # Carpeta absoluta donde se guardan los modelos 3D
+    UPLOAD_FOLDER_MODELOS = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'app', 'static', 'uploads', 'modelos'
+    )
+    # Extensiones permitidas para imágenes
     ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
-    # Tamaño máximo: 2 MB
-    MAX_CONTENT_LENGTH = 2 * 1024 * 1024
+    # Extensiones permitidas para modelos 3D
+    ALLOWED_MODEL_EXTENSIONS = {'stl', 'obj'}
+    # Tamaño máximo: 2 MB (imágenes) — los modelos 3D pueden ser más grandes
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB para soportar STL grandes

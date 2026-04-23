@@ -3,20 +3,34 @@
 {% block dashboard_content %}
 <div class="visor-container">
     <div class="visor-3d-wrapper">
-        <model-viewer 
-            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb" 
-            alt="Modelo 3D de {{ modelo.titulo }}" 
-            auto-rotate 
-            camera-controls 
-            shadow-intensity="1" 
-            ar 
-            touch-action="pan-y"
-            class="visor-3d-real">
-        </model-viewer>
+        {% if modelo.archivo_url %}
+            <div id="visor-3d-modelo" class="visor-3d-real"></div>
+        {% else %}
+            <div class="visor-placeholder-msg">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8C929D" stroke-width="1.5">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+                <p>Sin modelo 3D asociado</p>
+            </div>
+        {% endif %}
         <div class="visor-model-title">
             <p>{{ modelo.titulo }}</p>
         </div>
     </div>
+
+    {% if modelo.archivo_url %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initSTLViewer({
+                containerId: 'visor-3d-modelo',
+                stlUrl: "{{ url_for('static', filename='uploads/modelos/' + modelo.archivo_url) }}",
+                color: 0xE64D85,
+                bgColor: 0xE2F0F9,
+                showGrid: true
+            });
+        });
+    </script>
+    {% endif %}
 
     <div class="visor-info-panel">
         <div class="visor-column">

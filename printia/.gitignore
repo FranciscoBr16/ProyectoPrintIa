@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 app/static/uploads/avatars/*
 !app/static/uploads/avatars/.gitkeep
+app/static/uploads/modelos/*
+!app/static/uploads/modelos/.gitkeep

@@ -1591,3 +1591,77 @@ a {
     .footer__container { flex-direction: column; }
     .cta-card__title { font-size: 2.5rem; }
 }
+
+/* ================================================
+   STL VIEWER (Three.js)
+================================================ */
+.visor-3d-real {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.visor-3d-real canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 12px;
+}
+
+/* Spinner de carga */
+.stl-spinner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background-color: #E2F0F9;
+    z-index: 10;
+    border-radius: 12px;
+}
+
+.stl-spinner__circle {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #c5d8e6;
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: stlSpin 0.8s linear infinite;
+}
+
+.stl-spinner__text {
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-navbar-text);
+}
+
+@keyframes stlSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Placeholder cuando no hay modelo */
+.visor-placeholder-msg {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background-color: #E2F0F9;
+    border-radius: 12px;
+}
+
+.visor-placeholder-msg p {
+    font-family: var(--font-main);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #8C929D;
+}
