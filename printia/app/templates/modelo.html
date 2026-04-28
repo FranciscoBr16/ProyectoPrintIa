@@ -3,7 +3,29 @@
 {% block dashboard_content %}
 <div class="visor-container">
     <div class="visor-3d-wrapper">
-        {% if modelo.archivo_url %}
+        {% if generando %}
+            <div class="visor-placeholder-msg">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#E64D85" stroke-width="2" class="spin-animation">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+                <p>Generando modelo 3D con IA...</p>
+                <p style="font-size: 0.9em; color: #8C929D; margin-top: 5px;">Esto puede tomar entre 1 y 2 minutos.</p>
+            </div>
+            <style>
+                @keyframes spin { 100% { transform: rotate(360deg); } }
+                .spin-animation { animation: spin 1s linear infinite; }
+            </style>
+            <script>
+                setTimeout(function() { window.location.reload(); }, 5000);
+            </script>
+        {% elif error_generacion %}
+            <div class="visor-placeholder-msg">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF4D4D" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <p style="color: #FF4D4D;">Error en la generación del modelo</p>
+            </div>
+        {% elif modelo.archivo_url %}
             <div id="visor-3d-modelo" class="visor-3d-real"></div>
         {% else %}
             <div class="visor-placeholder-msg">
@@ -18,49 +40,65 @@
         </div>
     </div>
 
-    {% if modelo.archivo_url %}
+    {% if modelo.archivo_url and not generando and not error_generacion %}
+    <div class="visor-controls" style="display: flex; gap: 15px; margin-top: 15px; justify-content: center; align-items: center; flex-wrap: wrap; background: #1C2333; padding: 10px; border-radius: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="font-size: 0.85em; color: #8C929D; font-weight: 500; margin-right: 5px;">Filamento:</span>
+            <button onclick="window.myViewer.setColor(0xE64D85)" style="width:24px; height:24px; border-radius:50%; background:#E64D85; border:2px solid #2A3441; cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="Rosa PrintIA"></button>
+            <button onclick="window.myViewer.setColor(0x3498db)" style="width:24px; height:24px; border-radius:50%; background:#3498db; border:2px solid #2A3441; cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="PLA Azul"></button>
+            <button onclick="window.myViewer.setColor(0x2ecc71)" style="width:24px; height:24px; border-radius:50%; background:#2ecc71; border:2px solid #2A3441; cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="PLA Verde"></button>
+            <button onclick="window.myViewer.setColor(0xf1c40f)" style="width:24px; height:24px; border-radius:50%; background:#f1c40f; border:2px solid #2A3441; cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="PLA Amarillo"></button>
+            <button onclick="window.myViewer.setColor(0x95a5a6)" style="width:24px; height:24px; border-radius:50%; background:#95a5a6; border:2px solid #2A3441; cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="PLA Gris"></button>
+            <button onclick="window.myViewer.setColor(0xffffff)" style="width:24px; height:24px; border-radius:50%; background:#ffffff; border:2px solid #2A3441; cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="PLA Blanco"></button>
+        </div>
+        
+        <div style="width: 1px; height: 24px; background-color: #2A3441; margin: 0 5px;"></div>
+
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button onclick="window.myViewer.rotateAxis('x')" class="btn btn--secondary" style="padding: 6px 14px; font-size: 0.85em; min-width: auto; border-radius: 6px; display: flex; align-items: center; gap: 6px;" title="Girar el modelo si aparece acostado">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 2v6h-6"></path>
+                    <path d="M21 13a9 9 0 1 1-3-7.7L21 8"></path>
+                </svg>
+                Enderezar Modelo
+            </button>
+        </div>
+
+        <div style="width: 1px; height: 24px; background-color: #2A3441; margin: 0 5px;"></div>
+
+        <div style="display: flex; gap: 5px; align-items: center;">
+            <label style="font-size: 0.85em; color: #8C929D; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 500;">
+                <input type="checkbox" checked onchange="window.myViewer.toggleAutoRotate(this.checked)" style="accent-color: #E64D85; cursor: pointer;"> Auto-Rotar
+            </label>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            initSTLViewer({
+            window.myViewer = initSTLViewer({
                 containerId: 'visor-3d-modelo',
                 stlUrl: "{{ url_for('static', filename='uploads/modelos/' + modelo.archivo_url) }}",
                 color: 0xE64D85,
                 bgColor: 0xE2F0F9,
-                showGrid: true
+                showGrid: true,
+                autoRotate: true
             });
         });
     </script>
     {% endif %}
 
-    <div class="visor-info-panel">
-        <div class="visor-column">
-            <h3 class="visor-subtitle">Dimensiones</h3>
-            <div class="visor-dims">
-                <div class="dim-row">
-                    <span class="dim-label">X</span>
-                    <span class="dim-value">9</span>
-                    <span class="dim-unit">cm</span>
-                </div>
-                <div class="dim-row">
-                    <span class="dim-label">Y</span>
-                    <span class="dim-value">3</span>
-                    <span class="dim-unit">cm</span>
-                </div>
-                <div class="dim-row">
-                    <span class="dim-label">Z</span>
-                    <span class="dim-value">3</span>
-                    <span class="dim-unit">cm</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="visor-column">
+    <div class="visor-info-panel" style="justify-content: center; text-align: center;">
+        <div class="visor-column" style="width: 100%; max-width: 600px;">
             <h3 class="visor-subtitle">Recomendaciones de Impresión</h3>
-            <ul class="visor-recs">
-                <li>Mantener escala</li>
-                <li>Material de Impresion: PLA</li>
-                <li>Relleno: 20%</li>
-                <li>Soporte: No Necesario</li>
+            <ul class="visor-recs" style="display: inline-block; text-align: left;">
+                {% if modelo.recomendaciones %}
+                    {{ modelo.recomendaciones | safe }}
+                {% else %}
+                    <li>Mantener escala al 100%</li>
+                    <li>Material de Impresión: PLA</li>
+                    <li>Relleno: 15% - 20%</li>
+                    <li>Soporte: Según geometría</li>
+                {% endif %}
             </ul>
         </div>
     </div>
@@ -76,9 +114,49 @@
                     {% endif %}
                 </button>
             </form>
+            <button class="btn btn--secondary btn--large" onclick="abrirModalModificar()">Modificar Modelo</button>
         {% endif %}
-        <button class="btn btn--secondary btn--large">Modificar Modelo</button>
-        <button class="btn btn--primary btn--large" onclick="alert('Descargando STL...')">Descargar STL</button>
+        
+        {% if modelo.archivo_url and not generando and not error_generacion %}
+            <a href="{{ url_for('static', filename='uploads/modelos/' + modelo.archivo_url) }}" download="{{ modelo.titulo | replace(' ', '_') }}.stl" class="btn btn--primary btn--large" style="text-decoration: none; display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">Descargar STL</a>
+        {% else %}
+            <button class="btn btn--primary btn--large" disabled style="width: 100%; box-sizing: border-box;">Descargar STL</button>
+        {% endif %}
     </div>
 </div>
+
+{% if current_user.id_usuario == modelo.id_usuario %}
+<!-- Modal Modificar Modelo -->
+<div id="modal-modificar" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+    <div style="background: #1C2333; padding: 30px; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #2A3441;">
+        <h3 style="margin-top: 0; color: #fff; margin-bottom: 25px;">Modificar Modelo</h3>
+        
+        <form action="{{ url_for('main.editar_modelo', id_modelo=modelo.id_modelo) }}" method="POST">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="color: #8C929D; display: block; margin-bottom: 8px; font-size: 0.9em;">Nombre del Modelo</label>
+                <input type="text" name="titulo" value="{{ modelo.titulo }}" required class="form-control" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2A3441; background: #131826; color: #fff; box-sizing: border-box;">
+            </div>
+
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn--primary" style="flex: 1;">Guardar Cambios</button>
+                <button type="button" onclick="cerrarModalModificar()" class="btn btn--secondary" style="flex: 1;">Cancelar</button>
+            </div>
+        </form>
+        
+        <hr style="border: 0; border-top: 1px solid #2A3441; margin: 25px 0;">
+        
+        <form action="{{ url_for('main.eliminar_modelo', id_modelo=modelo.id_modelo) }}" method="POST" onsubmit="return confirm('¿Estás totalmente seguro de eliminar este modelo? Esta acción no se puede deshacer y el archivo se perderá.');">
+            <button type="submit" class="btn" style="width: 100%; background: transparent; color: #FF4D4D; border: 1px solid #FF4D4D; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.background='#FF4D4D'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#FF4D4D';">
+                Eliminar Modelo Definitivamente
+            </button>
+        </form>
+    </div>
+</div>
+<script>
+    function abrirModalModificar() { document.getElementById('modal-modificar').style.display = 'flex'; }
+    function cerrarModalModificar() { document.getElementById('modal-modificar').style.display = 'none'; }
+</script>
+{% endif %}
+
 {% endblock %}

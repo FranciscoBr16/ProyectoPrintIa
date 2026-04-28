@@ -51,3 +51,51 @@ def eliminar_avatar(nombre_archivo):
             os.remove(ruta)
         except OSError:
             pass 
+
+def generar_recomendaciones_ia(prompt_modelo):
+    """
+    Llama a la API de HuggingFace para generar recomendaciones de impresión 3D
+    basadas en el nombre/prompt del modelo.
+    """
+    import requests
+    hf_token = os.getenv('HF_TOKEN')
+    if not hf_token:
+        return None
+        
+    api_url = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
+    headers = {"Authorization": f"Bearer {hf_token}"}
+    
+    prompt_text = f"[INST] Eres un experto en impresión 3D. Voy a imprimir un modelo de: '{prompt_modelo}'. Dame exactamente 4 recomendaciones cortas en español (Escala, Material, Relleno, Soportes) en formato de viñetas HTML (<li>...</li>). No incluyas explicaciones ni etiquetas <ul>, solo los 4 <li>. [/INST]"
+    
+    payload = {
+        "inputs": prompt_text,
+        "parameters": {
+            "max_new_tokens": 150,
+            "temperature": 0.5,
+            "return_full_text": False
+        }
+    }
+    
+    try:
+        response = requests.post(api_url, headers=headers, json=payload, timeout=10)
+        if response.status_code == 200:
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                texto_generado = result[0].get("generated_text", "").strip()
+                
+                lineas = [line.strip() for line in texto_generado.split('\n') if line.strip()]
+                html_recs = ""
+                for line in lineas[:4]: # Solo tomamos 4 max
+                    if "<li>" in line:
+                        html_recs += line + "\n"
+                    else:
+                        line = line.lstrip("-* ").strip()
+                        html_recs += f"<li>{line}</li>\n"
+                        
+                if html_recs:
+                    return html_recs
+    except Exception as e:
+        print(f"Error IA: {e}")
+        
+    return None
+

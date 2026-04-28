@@ -60,6 +60,11 @@ function initSTLViewer(options) {
     controls.enablePan = true;
     controls.minDistance = 1;
     controls.maxDistance = 5000;
+    
+    // Auto-rotación por defecto
+    const autoRotate = options.autoRotate !== undefined ? options.autoRotate : true;
+    controls.autoRotate = autoRotate;
+    controls.autoRotateSpeed = 2.0;
 
     // --- Iluminación ---
     // Luz ambiental suave
@@ -86,18 +91,21 @@ function initSTLViewer(options) {
     // --- Cargar STL ---
     const loader = new THREE.STLLoader();
 
+    let modelMaterial = null;
+    let modelGroup = null;
+
     loader.load(
         stlUrl,
         function (geometry) {
             // Material con aspecto plástico/mate (como impresión 3D)
-            const material = new THREE.MeshStandardMaterial({
+            modelMaterial = new THREE.MeshStandardMaterial({
                 color: modelColor,
                 roughness: 0.4,
                 metalness: 0.1,
                 flatShading: false
             });
 
-            const mesh = new THREE.Mesh(geometry, material);
+            const mesh = new THREE.Mesh(geometry, modelMaterial);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
 
@@ -110,7 +118,7 @@ function initSTLViewer(options) {
             const center = new THREE.Vector3();
             boundingBox.getCenter(center);
             
-            // Centrar el modelo en el origen
+            // Centrar el mesh en el origen local del grupo
             mesh.position.set(-center.x, -center.y, -center.z);
 
             // Calcular tamaño para ajustar la cámara
@@ -119,14 +127,15 @@ function initSTLViewer(options) {
             const maxDim = Math.max(size.x, size.y, size.z);
 
             // Agrupar en un grupo para facilitar rotación
-            const group = new THREE.Group();
-            group.add(mesh);
+            modelGroup = new THREE.Group();
+            modelGroup.add(mesh);
             
-            // Elevar el modelo para que apoye sobre la grilla
-            const yOffset = -boundingBox.min.y + center.y;
-            mesh.position.y = -center.y + yOffset;
+            // Elevar el grupo completo para que apoye sobre la grilla (y=0)
+            modelGroup.updateMatrixWorld(true);
+            const initialBox = new THREE.Box3().setFromObject(modelGroup);
+            modelGroup.position.y = -initialBox.min.y;
             
-            scene.add(group);
+            scene.add(modelGroup);
 
             // Ajustar cámara según tamaño del modelo
             const distance = maxDim * 2.5;
@@ -188,4 +197,30 @@ function initSTLViewer(options) {
         }
     });
     resizeObserver.observe(container);
+
+    // Retornar instancia de control
+    return {
+        rotateAxis: function(axis) {
+            if (modelGroup) {
+                if (axis === 'x') modelGroup.rotation.x += Math.PI / 2;
+                if (axis === 'y') modelGroup.rotation.y += Math.PI / 2;
+                if (axis === 'z') modelGroup.rotation.z += Math.PI / 2;
+                
+                // Recalcular bounding box para que no atraviese el piso
+                modelGroup.updateMatrixWorld(true);
+                const currentBox = new THREE.Box3().setFromObject(modelGroup);
+                
+                // Ajustar la altura para que la parte inferior quede justo en 0
+                modelGroup.position.y += (0 - currentBox.min.y);
+            }
+        },
+        setColor: function(hexColor) {
+            if (modelMaterial) {
+                modelMaterial.color.setHex(hexColor);
+            }
+        },
+        toggleAutoRotate: function(enable) {
+            controls.autoRotate = enable;
+        }
+    };
 }

@@ -97,24 +97,52 @@ def generar():
         flash('Límite de créditos alcanzado. Pásate a PRO para continuar.', 'error')
         return redirect(url_for('main.planes'))
     
-    # Aquí iría la llamada real a la API de IA. Por ahora hacemos un mock.
-    # Simulamos un tiempo de procesamiento
-    import time
-    time.sleep(2)
+    import requests
+    from flask import current_app
+
+    api_key = current_app.config.get('MESHY_API_KEY')
+    if not api_key:
+        flash('Error de configuración: API Key de Meshy no encontrada.', 'error')
+        return redirect(url_for('main.generador'))
+
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        "mode": "preview",
+        "prompt": prompt,
+        "target_formats": ["stl", "glb"]
+    }
     
-    nuevo_modelo = Modelo(
-        id_usuario=current_user.id_usuario,
-        prompt_texto=prompt,
-        titulo=f"Modelo basado en: {prompt[:20]}...",
-        imagen_url="mock_image.png",   # Imagen previa mock
-        es_publico=False
-    )
-    
-    db.session.add(nuevo_modelo)
-    db.session.commit()
-    
-    flash('¡Modelo generado exitosamente!', 'success')
-    return redirect(url_for('main.modelo', id_modelo=nuevo_modelo.id_modelo))
+    try:
+        response = requests.post('https://api.meshy.ai/openapi/v2/text-to-3d', headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        task_id = data.get('result')
+        
+        # Generar recomendaciones de impresión con IA
+        from app.utils import generar_recomendaciones_ia
+        recomendaciones_html = generar_recomendaciones_ia(prompt)
+        
+        nuevo_modelo = Modelo(
+            id_usuario=current_user.id_usuario,
+            prompt_texto=prompt,
+            titulo=prompt[:30].capitalize(),
+            archivo_url=f"task:{task_id}",
+            imagen_url="", # Se llenará cuando finalice
+            es_publico=False,
+            recomendaciones=recomendaciones_html
+        )
+        db.session.add(nuevo_modelo)
+        db.session.commit()
+        
+        flash('¡Generación iniciada! Por favor, espera mientras procesamos el modelo 3D.', 'success')
+        return redirect(url_for('main.modelo', id_modelo=nuevo_modelo.id_modelo))
+        
+    except Exception as e:
+        flash(f'Ocurrió un error al contactar la API de generación: {str(e)}', 'error')
+        return redirect(url_for('main.generador'))
 
 @main_bp.route('/modelo/<int:id_modelo>')
 @login_required
@@ -124,7 +152,63 @@ def modelo(id_modelo):
     if not modelo_obj.es_publico and modelo_obj.id_usuario != current_user.id_usuario:
         flash('No tienes permiso para ver este modelo.', 'error')
         return redirect(url_for('main.galeria'))
-    return render_template('modelo.html', modelo=modelo_obj)
+        
+    generando = False
+    error_generacion = False
+    
+    if modelo_obj.archivo_url and modelo_obj.archivo_url.startswith("task:"):
+        generando = True
+        task_id = modelo_obj.archivo_url.split(":")[1]
+        
+        from flask import current_app
+        import requests
+        import os
+        api_key = current_app.config.get('MESHY_API_KEY')
+        headers = {'Authorization': f'Bearer {api_key}'}
+        
+        try:
+            response = requests.get(f'https://api.meshy.ai/openapi/v2/text-to-3d/{task_id}', headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                status = data.get('status')
+                
+                if status == 'SUCCEEDED':
+                    # Descargar y guardar STL y miniatura
+                    stl_url = data.get('model_urls', {}).get('stl')
+                    thumb_url = data.get('thumbnail_url')
+                    
+                    if stl_url:
+                        stl_filename = f"modelo_{id_modelo}_{task_id[:8]}.stl"
+                        stl_path = os.path.join(current_app.config['UPLOAD_FOLDER_MODELOS'], stl_filename)
+                        os.makedirs(os.path.dirname(stl_path), exist_ok=True)
+                        with open(stl_path, 'wb') as f:
+                            f.write(requests.get(stl_url).content)
+                        modelo_obj.archivo_url = stl_filename
+                    else:
+                        modelo_obj.archivo_url = None
+                        
+                    if thumb_url:
+                        thumb_filename = f"thumb_{id_modelo}_{task_id[:8]}.png"
+                        thumb_path = os.path.join(current_app.config['UPLOAD_FOLDER_AVATARS'], thumb_filename)
+                        os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+                        with open(thumb_path, 'wb') as f:
+                            f.write(requests.get(thumb_url).content)
+                        modelo_obj.imagen_url = thumb_filename
+                    else:
+                        modelo_obj.imagen_url = "mock_image.png"
+                    
+                    db.session.commit()
+                    generando = False
+                    
+                elif status == 'FAILED':
+                    modelo_obj.archivo_url = None
+                    db.session.commit()
+                    generando = False
+                    error_generacion = True
+        except Exception as e:
+            print(f"Error consultando Meshy: {e}")
+            
+    return render_template('modelo.html', modelo=modelo_obj, generando=generando, error_generacion=error_generacion)
 
 @main_bp.route('/modelo/<int:id_modelo>/toggle_public', methods=['POST'])
 @login_required
@@ -139,6 +223,40 @@ def toggle_public(id_modelo):
     modelo_obj.es_publico = not modelo_obj.es_publico
     db.session.commit()
     
+    flash('Visibilidad del modelo actualizada.', 'success')
+    return redirect(url_for('main.modelo', id_modelo=modelo_obj.id_modelo))
+
+@main_bp.route('/modelo/<int:id_modelo>/editar', methods=['POST'])
+@login_required
+def editar_modelo(id_modelo):
+    modelo_obj = Modelo.query.get_or_404(id_modelo)
+    if modelo_obj.id_usuario != current_user.id_usuario:
+        flash('No tienes permiso para modificar este modelo.', 'error')
+        return redirect(url_for('main.galeria'))
+    
+    nuevo_titulo = request.form.get('titulo')
+    
+    if nuevo_titulo and len(nuevo_titulo.strip()) > 0:
+        modelo_obj.titulo = nuevo_titulo.strip()
+        db.session.commit()
+        flash('Modelo actualizado correctamente.', 'success')
+    else:
+        flash('El título no puede estar vacío.', 'error')
+        
+    return redirect(url_for('main.modelo', id_modelo=modelo_obj.id_modelo))
+
+@main_bp.route('/modelo/<int:id_modelo>/eliminar', methods=['POST'])
+@login_required
+def eliminar_modelo(id_modelo):
+    modelo_obj = Modelo.query.get_or_404(id_modelo)
+    if modelo_obj.id_usuario != current_user.id_usuario:
+        flash('No tienes permiso para eliminar este modelo.', 'error')
+        return redirect(url_for('main.galeria'))
+    
+    db.session.delete(modelo_obj)
+    db.session.commit()
+    flash('Modelo eliminado correctamente.', 'success')
+    return redirect(url_for('main.galeria'))
     status = "público" if modelo_obj.es_publico else "privado"
     flash(f'El modelo ahora es {status}.', 'success')
     return redirect(url_for('main.modelo', id_modelo=id_modelo))

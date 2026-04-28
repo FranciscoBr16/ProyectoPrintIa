@@ -9,11 +9,15 @@
             {% for modelo in modelos %}
             <div class="modelo-card">
                 <div class="modelo-card__image">
+                    {% if modelo.imagen_url and modelo.imagen_url != 'mock_image.png' and modelo.imagen_url != '' %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + modelo.imagen_url) }}" alt="{{ modelo.titulo }}" style="width: 100%; height: 100%; object-fit: cover; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                    {% else %}
                     <div class="modelo-placeholder">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2">
                             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                         </svg>
                     </div>
+                    {% endif %}
                 </div>
                 <div class="modelo-card__info">
                     <h3 class="modelo-card__title">{{ modelo.titulo }}</h3>

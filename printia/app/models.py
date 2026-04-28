@@ -46,6 +46,14 @@ class Modelo(db.Model):
     es_publico = db.Column(db.Boolean, default=False, nullable=False)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Dimensiones en cm
+    dim_x = db.Column(db.Float, default=9.0)
+    dim_y = db.Column(db.Float, default=3.0)
+    dim_z = db.Column(db.Float, default=3.0)
+    
+    # Recomendaciones generadas por IA
+    recomendaciones = db.Column(db.Text, nullable=True)
 
     # Relaciones
     metricas = db.relationship('Metrica', backref='modelo', lazy=True)
