@@ -28,17 +28,19 @@ def dashboard():
     # Información de suscripción
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     plan_nombre = 'GRATIS'
-    limite_gratis = 3
-    creditos_restantes = max(0, limite_gratis - current_user.generaciones_usadas)
+    limite_gratis = 1
     
     if suscripcion:
         plan = Plan.query.get(suscripcion.id_plan)
         if plan:
             plan_nombre = plan.nombre_plan
             if plan_nombre == 'PRO':
-                creditos_restantes = -1 # Ilimitado
-            else:
                 creditos_restantes = suscripcion.modelos_restantes
+            else:
+                # Otros planes si existieran
+                creditos_restantes = suscripcion.modelos_restantes
+    else:
+        creditos_restantes = max(0, limite_gratis - total_modelos)
 
     return render_template('dashboard.html', 
                            total_modelos=total_modelos, 
@@ -51,12 +53,18 @@ def dashboard():
 @login_required
 def generador():
     # Verificar créditos antes de dejar entrar al generador
-    total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     
-    if not suscripcion and current_user.generaciones_usadas >= 3:
-        flash('Has alcanzado el límite de 3 modelos gratuitos. ¡Pásate a PRO para seguir creando!', 'info')
-        return redirect(url_for('main.planes'))
+    if not suscripcion:
+        total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
+        if total_modelos >= 1:
+            flash('Has alcanzado el límite de 1 modelo gratuito. ¡Pásate a PRO para crear hasta 15 por mes!', 'info')
+            return redirect(url_for('main.planes'))
+    else:
+        # Límite basado en columna modelos_restantes
+        if suscripcion.modelos_restantes <= 0:
+            flash('Has alcanzado tu límite de modelos contratados.', 'info')
+            return redirect(url_for('main.dashboard'))
         
     return render_template('generador.html')
 
@@ -92,9 +100,16 @@ def generar():
     # Validación de seguridad: verificar créditos
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     
-    if not suscripcion and current_user.generaciones_usadas >= 3:
-        flash('Límite de créditos alcanzado (3/3). Pásate a PRO para continuar.', 'error')
-        return redirect(url_for('main.planes'))
+    if not suscripcion:
+        total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
+        if total_modelos >= 1:
+            flash('Límite de créditos alcanzado (1/1). Pásate a PRO para continuar.', 'error')
+            return redirect(url_for('main.planes'))
+    else:
+        # Límite basado en columna modelos_restantes
+        if suscripcion.modelos_restantes <= 0:
+            flash('Límite de créditos alcanzado (0/15).', 'error')
+            return redirect(url_for('main.dashboard'))
     
     import requests
     from flask import current_app
@@ -120,12 +135,13 @@ def generar():
         data = response.json()
         task_id = data.get('result')
         
+        # Restar un crédito si es PRO
+        if suscripcion:
+            suscripcion.modelos_restantes = max(0, suscripcion.modelos_restantes - 1)
+            
         # Generar recomendaciones de impresión con IA
         from app.utils import generar_recomendaciones_ia
         recomendaciones_html = generar_recomendaciones_ia(prompt)
-        
-        # Incrementar contador de generaciones usadas
-        current_user.generaciones_usadas += 1
         
         nuevo_modelo = Modelo(
             id_usuario=current_user.id_usuario,
@@ -376,8 +392,13 @@ def checkout():
         # Buscamos o creamos el plan PRO
         plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
         if not plan_pro:
-            plan_pro = Plan(nombre_plan='PRO', limite_exportaciones_mensual=-1, precio=9.99)
+            plan_pro = Plan(nombre_plan='PRO', limite_exportaciones_mensual=15, precio=10.00)
             db.session.add(plan_pro)
+            db.session.commit()
+        else:
+            # Asegurar que el precio y límite estén actualizados si ya existía
+            plan_pro.precio = 10.00
+            plan_pro.limite_exportaciones_mensual = 15
             db.session.commit()
             
         # Actualizamos o creamos la suscripción del usuario

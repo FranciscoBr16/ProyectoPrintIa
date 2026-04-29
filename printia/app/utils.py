@@ -60,42 +60,67 @@ def generar_recomendaciones_ia(prompt_modelo):
     import requests
     hf_token = os.getenv('HF_TOKEN')
     if not hf_token:
+        print("Error: HF_TOKEN no configurado.")
         return None
         
-    api_url = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
-    headers = {"Authorization": f"Bearer {hf_token}"}
+    # Usamos Zephyr-7b-beta que suele ser muy fiable en la API gratuita
+    api_url = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
+    headers = {
+        "Authorization": f"Bearer {hf_token}",
+        "Content-Type": "application/json",
+        "X-Wait-For-Model": "true"
+    }
     
-    prompt_text = f"[INST] Eres un experto en impresión 3D. Voy a imprimir un modelo de: '{prompt_modelo}'. Dame exactamente 4 recomendaciones cortas en español (Escala, Material, Relleno, Soportes) en formato de viñetas HTML (<li>...</li>). No incluyas explicaciones ni etiquetas <ul>, solo los 4 <li>. [/INST]"
+    prompt_text = f"<|system|>\nEres un experto en impresión 3D. Dame 4 recomendaciones cortas para imprimir este objeto. Solo devuelve las viñetas HTML <li>.</s>\n<|user|>\nObjeto: '{prompt_modelo}'</s>\n<|assistant|>\n"
     
     payload = {
         "inputs": prompt_text,
         "parameters": {
             "max_new_tokens": 150,
-            "temperature": 0.5,
+            "temperature": 0.7,
+            "top_p": 0.95,
             "return_full_text": False
         }
     }
     
+    fallback_recs = "<li>Escala: 100%</li>\n<li>Material: PLA</li>\n<li>Relleno: 20%</li>\n<li>Soportes: Sí</li>"
+    
     try:
-        response = requests.post(api_url, headers=headers, json=payload, timeout=10)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=25)
         if response.status_code == 200:
             result = response.json()
             if isinstance(result, list) and len(result) > 0:
                 texto_generado = result[0].get("generated_text", "").strip()
                 
+                # Limpieza mejorada
                 lineas = [line.strip() for line in texto_generado.split('\n') if line.strip()]
                 html_recs = ""
-                for line in lineas[:4]: # Solo tomamos 4 max
-                    if "<li>" in line:
-                        html_recs += line + "\n"
-                    else:
-                        line = line.lstrip("-* ").strip()
-                        html_recs += f"<li>{line}</li>\n"
+                count = 0
+                for line in lineas:
+                    if count >= 4: break
+                    
+                    line_lower = line.lower()
+                    if "<li>" in line_lower:
+                        # Extraer solo el contenido dentro de <li> si hay basura alrededor
+                        import re
+                        match = re.search(r"<li>(.*?)</li>", line, re.IGNORECASE)
+                        if match:
+                            html_recs += f"<li>{match.group(1)}</li>\n"
+                        else:
+                            html_recs += line + "\n"
+                        count += 1
+                    elif line.startswith(('-', '*', '1.', '2.', '3.', '4.')) or ":" in line:
+                        clean_line = re.sub(r'^[ \-*1-4.\d]+', '', line).strip()
+                        if clean_line:
+                            html_recs += f"<li>{clean_line}</li>\n"
+                            count += 1
                         
                 if html_recs:
                     return html_recs
+        else:
+            print(f"Error API HuggingFace ({response.status_code}): {response.text}")
     except Exception as e:
-        print(f"Error IA: {e}")
+        print(f"Excepción en generar_recomendaciones_ia: {e}")
         
-    return None
+    return fallback_recs
 

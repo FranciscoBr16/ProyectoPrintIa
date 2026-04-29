@@ -13,12 +13,26 @@ class Usuario(UserMixin, db.Model):
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     es_admin = db.Column(db.Boolean, default=False, nullable=False)
     imagen = db.Column(db.String(255), nullable=True)
-    generaciones_usadas = db.Column(db.Integer, default=0, nullable=False)
     
     # Relaciones
     modelos = db.relationship('Modelo', backref='creador', lazy=True)
     suscripciones = db.relationship('Suscripcion', backref='usuario', lazy=True)
     valoraciones = db.relationship('Valoracion', backref='usuario', lazy=True)
+
+    @property
+    def total_generados(self):
+        from app.models import Modelo
+        return Modelo.query.filter_by(id_usuario=self.id_usuario).count()
+    
+    @property
+    def generados_mes(self):
+        from app.models import Modelo
+        import datetime
+        primer_dia_mes = datetime.datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        return Modelo.query.filter(
+            Modelo.id_usuario == self.id_usuario,
+            Modelo.fecha_creacion >= primer_dia_mes
+        ).count()
 
     def set_password(self, password_plano):
         self.clave = generate_password_hash(password_plano)
