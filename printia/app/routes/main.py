@@ -28,8 +28,8 @@ def dashboard():
     # Información de suscripción
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     plan_nombre = 'GRATIS'
-    limite_gratis = 5
-    creditos_restantes = max(0, limite_gratis - total_modelos)
+    limite_gratis = 3
+    creditos_restantes = max(0, limite_gratis - current_user.generaciones_usadas)
     
     if suscripcion:
         plan = Plan.query.get(suscripcion.id_plan)
@@ -54,8 +54,8 @@ def generador():
     total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     
-    if not suscripcion and total_modelos >= 5:
-        flash('Has alcanzado el límite de 5 modelos gratuitos. ¡Pásate a PRO para seguir creando!', 'info')
+    if not suscripcion and current_user.generaciones_usadas >= 3:
+        flash('Has alcanzado el límite de 3 modelos gratuitos. ¡Pásate a PRO para seguir creando!', 'info')
         return redirect(url_for('main.planes'))
         
     return render_template('generador.html')
@@ -90,11 +90,10 @@ def generar():
         return redirect(url_for('main.generador'))
     
     # Validación de seguridad: verificar créditos
-    total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     
-    if not suscripcion and total_modelos >= 5:
-        flash('Límite de créditos alcanzado. Pásate a PRO para continuar.', 'error')
+    if not suscripcion and current_user.generaciones_usadas >= 3:
+        flash('Límite de créditos alcanzado (3/3). Pásate a PRO para continuar.', 'error')
         return redirect(url_for('main.planes'))
     
     import requests
@@ -125,16 +124,27 @@ def generar():
         from app.utils import generar_recomendaciones_ia
         recomendaciones_html = generar_recomendaciones_ia(prompt)
         
+        # Incrementar contador de generaciones usadas
+        current_user.generaciones_usadas += 1
+        
         nuevo_modelo = Modelo(
             id_usuario=current_user.id_usuario,
             prompt_texto=prompt,
             titulo=prompt[:30].capitalize(),
             archivo_url=f"task:{task_id}",
             imagen_url="", # Se llenará cuando finalice
-            es_publico=False,
-            recomendaciones=recomendaciones_html
+            es_publico=False
         )
         db.session.add(nuevo_modelo)
+        db.session.flush() # Para obtener el id_modelo antes del commit final
+        
+        # Guardar recomendaciones en la tabla de métricas
+        nueva_metrica = Metrica(
+            id_modelo=nuevo_modelo.id_modelo,
+            recomendaciones=recomendaciones_html
+        )
+        db.session.add(nueva_metrica)
+        
         db.session.commit()
         
         flash('¡Generación iniciada! Por favor, espera mientras procesamos el modelo 3D.', 'success')
@@ -189,7 +199,7 @@ def modelo(id_modelo):
                         
                     if thumb_url:
                         thumb_filename = f"thumb_{id_modelo}_{task_id[:8]}.png"
-                        thumb_path = os.path.join(current_app.config['UPLOAD_FOLDER_AVATARS'], thumb_filename)
+                        thumb_path = os.path.join(current_app.config['UPLOAD_FOLDER_THUMBNAILS'], thumb_filename)
                         os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
                         with open(thumb_path, 'wb') as f:
                             f.write(requests.get(thumb_url).content)
@@ -197,11 +207,29 @@ def modelo(id_modelo):
                     else:
                         modelo_obj.imagen_url = "mock_image.png"
                     
+                    # --- ACTUALIZACIÓN DE MÉTRICAS ---
+                    metrica = Metrica.query.filter_by(id_modelo=id_modelo).order_by(Metrica.fecha_generacion.desc()).first()
+                    if metrica:
+                        ahora = datetime.datetime.utcnow()
+                        # Calcular duración en segundos
+                        duracion_segundos = (ahora - modelo_obj.fecha_creacion).total_seconds()
+                        metrica.duracion = duracion_segundos
+                        metrica.exitoso = True
+                    
                     db.session.commit()
                     generando = False
                     
                 elif status == 'FAILED':
                     modelo_obj.archivo_url = None
+                    
+                    # --- ACTUALIZACIÓN DE MÉTRICAS EN FALLO ---
+                    metrica = Metrica.query.filter_by(id_modelo=id_modelo).order_by(Metrica.fecha_generacion.desc()).first()
+                    if metrica:
+                        metrica.exitoso = False
+                        # Intentar extraer el mensaje de error de la respuesta de Meshy
+                        error_msg = data.get('error', {}).get('message', 'Error desconocido en Meshy')
+                        metrica.detalle_error = (error_msg[:250] + '...') if len(error_msg) > 250 else error_msg
+                    
                     db.session.commit()
                     generando = False
                     error_generacion = True
@@ -257,9 +285,6 @@ def eliminar_modelo(id_modelo):
     db.session.commit()
     flash('Modelo eliminado correctamente.', 'success')
     return redirect(url_for('main.galeria'))
-    status = "público" if modelo_obj.es_publico else "privado"
-    flash(f'El modelo ahora es {status}.', 'success')
-    return redirect(url_for('main.modelo', id_modelo=id_modelo))
 
 @main_bp.route('/planes')
 def planes():

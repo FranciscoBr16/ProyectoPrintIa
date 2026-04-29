@@ -1,10 +1,10 @@
 CREATE DATABASE  IF NOT EXISTS `printia` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `printia`;
--- MySQL dump 10.13  Distrib 8.0.44, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.42, for Win64 (x86_64)
 --
 -- Host: localhost    Database: printia
 -- ------------------------------------------------------
--- Server version	8.0.44
+-- Server version	8.0.42
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -31,6 +31,7 @@ CREATE TABLE `metricas` (
   `detalle_error` varchar(255) DEFAULT NULL,
   `exitoso` tinyint DEFAULT NULL,
   `fecha_generacion` datetime DEFAULT CURRENT_TIMESTAMP,
+  `recomendaciones` text,
   PRIMARY KEY (`id_metrica`),
   KEY `fk_modelo_idx` (`id_modelo`),
   CONSTRAINT `fk_modelo2` FOREIGN KEY (`id_modelo`) REFERENCES `modelos` (`id_modelo`) ON DELETE RESTRICT ON UPDATE CASCADE
@@ -66,7 +67,6 @@ CREATE TABLE `modelos` (
   `dim_x` float DEFAULT '9',
   `dim_y` float DEFAULT '3',
   `dim_z` float DEFAULT '3',
-  `recomendaciones` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id_modelo`),
   KEY `fk_usuario2_idx` (`id_usuario`),
   CONSTRAINT `fk_usuario2` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE RESTRICT ON UPDATE CASCADE
@@ -79,7 +79,7 @@ CREATE TABLE `modelos` (
 
 LOCK TABLES `modelos` WRITE;
 /*!40000 ALTER TABLE `modelos` DISABLE KEYS */;
-INSERT INTO `modelos` VALUES (16,2,'soporte para celular','Modelo basado en: soporte para celular...','modelo_16_019dd535.stl','thumb_16_019dd535.png',1,'2026-04-28 17:49:34','2026-04-28 18:15:37',9,3,3,NULL),(17,1,'auto con forma de calabaza \r\n','Modelo basado en: auto con forma de ca...','modelo_17_019dd53c.stl','thumb_17_019dd53c.png',1,'2026-04-28 17:56:27','2026-04-28 21:24:57',100,33.3,33.3,NULL),(18,1,'Bajo fender (Instrumento)','Modelo basado en: Bajo fender (Instrum...','modelo_18_019dd552.stl','thumb_18_019dd552.png',0,'2026-04-28 18:21:09','2026-04-28 18:22:14',9,3,3,NULL),(19,1,'Guitarra stratocaster ','Modelo basado en: Guitarra stratocaste...','modelo_19_019dd555.stl','thumb_19_019dd555.png',0,'2026-04-28 18:23:45','2026-04-28 18:25:07',9,3,3,NULL),(20,1,'Maceta con forma de corazon','Maceta con forma de corazon','modelo_20_019dd5f9.stl','thumb_20_019dd5f9.png',0,'2026-04-28 21:23:07','2026-04-28 21:25:15',9,3,3,NULL),(21,1,'peon ajedrez','Peon ajedrez','modelo_21_019dd5fc.stl','thumb_21_019dd5fc.png',0,'2026-04-28 21:26:12','2026-04-28 21:28:15',9,3,3,NULL),(22,1,'A Pawn of Chess','A pawn of chess','modelo_22_019dd602.stl','thumb_22_019dd602.png',0,'2026-04-28 21:33:14','2026-04-28 21:34:30',9,3,3,NULL),(23,1,'A car with a flower up a roof','A car with a flower up a roof','modelo_23_019dd60a.stl','thumb_23_019dd60a.png',0,'2026-04-28 21:42:09','2026-04-28 21:44:12',9,3,3,NULL);
+INSERT INTO `modelos` VALUES (16,2,'soporte para celular','Modelo basado en: soporte para celular...','modelo_16_019dd535.stl','thumb_16_019dd535.png',1,'2026-04-28 17:49:34','2026-04-28 18:15:37',9,3,3),(17,1,'auto con forma de calabaza \r\n','Modelo basado en: auto con forma de ca...','modelo_17_019dd53c.stl','thumb_17_019dd53c.png',1,'2026-04-28 17:56:27','2026-04-28 21:24:57',100,33.3,33.3),(18,1,'Bajo fender (Instrumento)','Modelo basado en: Bajo fender (Instrum...','modelo_18_019dd552.stl','thumb_18_019dd552.png',0,'2026-04-28 18:21:09','2026-04-28 18:22:14',9,3,3),(19,1,'Guitarra stratocaster ','Modelo basado en: Guitarra stratocaste...','modelo_19_019dd555.stl','thumb_19_019dd555.png',0,'2026-04-28 18:23:45','2026-04-28 18:25:07',9,3,3),(20,1,'Maceta con forma de corazon','Maceta con forma de corazon','modelo_20_019dd5f9.stl','thumb_20_019dd5f9.png',0,'2026-04-28 21:23:07','2026-04-28 21:25:15',9,3,3),(21,1,'peon ajedrez','Peon ajedrez','modelo_21_019dd5fc.stl','thumb_21_019dd5fc.png',0,'2026-04-28 21:26:12','2026-04-28 21:28:15',9,3,3),(22,1,'A Pawn of Chess','A pawn of chess','modelo_22_019dd602.stl','thumb_22_019dd602.png',0,'2026-04-28 21:33:14','2026-04-28 21:34:30',9,3,3),(23,1,'A car with a flower up a roof','A car with a flower up a roof','modelo_23_019dd60a.stl','thumb_23_019dd60a.png',0,'2026-04-28 21:42:09','2026-04-28 21:44:12',9,3,3);
 /*!40000 ALTER TABLE `modelos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -170,7 +170,7 @@ CREATE TABLE `usuarios` (
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (1,'santiauat@hotmail.com','scrypt:32768:8:1$AMncDim1Y1W94ZDr$d4bc196cc86945d638dd233a04c4715f42e5db519381d07b14d191c79095d023c4a0925155dcf3e3f52b81d2d5c83929c293cf13b60589a7d478d552ce002f63','santiauat','2026-04-20 23:21:20',0,'user_1_3cdbe997.jpg',0),(2,'somosdecalle@gmail.com','scrypt:32768:8:1$Yvc00wgnDBKaRLNn$9f7232fe86e3ed9032b7cca49ba731b8dfb454122c8e716c046dc35fa1b4cda7a19bff152468ba98b4d0542ff607c5fe68aa72e2ab734a1b990e544934d259b0','mongotofloro','2026-04-20 23:46:49',0,'user_2_d29d44f2.jpg',0),(3,'ricardodarin@gmail.com','scrypt:32768:8:1$3Ru7A0GS96tat7Ez$e8bba12a0683d261fd6d2f46a502bf12f0dc6f41a094252bb78d3415e1f0fa850372e0d888c680ee5043532c2536f5b5580cd06ed2c5a580752637b60e413d27','ricdarin','2026-04-22 00:22:29',0,NULL,0),(4,'test@example.com','scrypt:32768:8:1$ROJA40JIHA92UgKW$169720327bdc0e5e4f546139e362781b6f9479fbbfc78099b1b6cbdeb7b64c82aaee8f0861d243b19d0bc0e6eae31190016b790f35efd817c9acefb62d1087cb','testuser','2026-04-22 21:53:43',0,NULL,0);
+INSERT INTO `usuarios` VALUES (1,'santiauat@hotmail.com','scrypt:32768:8:1$AMncDim1Y1W94ZDr$d4bc196cc86945d638dd233a04c4715f42e5db519381d07b14d191c79095d023c4a0925155dcf3e3f52b81d2d5c83929c293cf13b60589a7d478d552ce002f63','santiauat','2026-04-20 23:21:20',0,'user_1_3cdbe997.jpg',2),(2,'somosdecalle@gmail.com','scrypt:32768:8:1$Yvc00wgnDBKaRLNn$9f7232fe86e3ed9032b7cca49ba731b8dfb454122c8e716c046dc35fa1b4cda7a19bff152468ba98b4d0542ff607c5fe68aa72e2ab734a1b990e544934d259b0','mongotofloro','2026-04-20 23:46:49',0,'user_2_d29d44f2.jpg',1),(3,'ricardodarin@gmail.com','scrypt:32768:8:1$3Ru7A0GS96tat7Ez$e8bba12a0683d261fd6d2f46a502bf12f0dc6f41a094252bb78d3415e1f0fa850372e0d888c680ee5043532c2536f5b5580cd06ed2c5a580752637b60e413d27','ricdarin','2026-04-22 00:22:29',0,NULL,3),(4,'test@example.com','scrypt:32768:8:1$ROJA40JIHA92UgKW$169720327bdc0e5e4f546139e362781b6f9479fbbfc78099b1b6cbdeb7b64c82aaee8f0861d243b19d0bc0e6eae31190016b790f35efd817c9acefb62d1087cb','testuser','2026-04-22 21:53:43',0,NULL,0);
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -214,4 +214,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-28 18:50:37
+-- Dump completed on 2026-04-29  9:47:30

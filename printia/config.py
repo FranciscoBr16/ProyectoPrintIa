@@ -19,10 +19,14 @@ class Config:
         os.path.dirname(os.path.abspath(__file__)),
         'app', 'static', 'uploads', 'avatars'
     )
-    # Carpeta absoluta donde se guardan los modelos 3D
     UPLOAD_FOLDER_MODELOS = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'app', 'static', 'uploads', 'modelos'
+    )
+    # Carpeta absoluta donde se guardan los thumbnails de modelos
+    UPLOAD_FOLDER_THUMBNAILS = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'app', 'static', 'uploads', 'thumbnails'
     )
     # Extensiones permitidas para imágenes
     ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}

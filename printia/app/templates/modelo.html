@@ -91,8 +91,9 @@
         <div class="visor-column" style="width: 100%; max-width: 600px;">
             <h3 class="visor-subtitle">Recomendaciones de Impresión</h3>
             <ul class="visor-recs" style="display: inline-block; text-align: left;">
-                {% if modelo.recomendaciones %}
-                    {{ modelo.recomendaciones | safe }}
+                {% set metrica_recs = (modelo.metricas | selectattr('recomendaciones', 'ne', none) | list | first) if modelo.metricas else none %}
+                {% if metrica_recs and metrica_recs.recomendaciones %}
+                    {{ metrica_recs.recomendaciones | safe }}
                 {% else %}
                     <li>Mantener escala al 100%</li>
                     <li>Material de Impresión: PLA</li>

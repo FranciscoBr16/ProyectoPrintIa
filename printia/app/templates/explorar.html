@@ -16,7 +16,7 @@
             <div class="modelo-card">
                 <div class="modelo-card__image">
                     {% if modelo.imagen_url and modelo.imagen_url != 'mock_image.png' and modelo.imagen_url != '' %}
-                    <img src="{{ url_for('static', filename='uploads/avatars/' + modelo.imagen_url) }}" alt="{{ modelo.titulo }}" style="width: 100%; height: 100%; object-fit: cover; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                    <img src="{{ url_for('static', filename='uploads/thumbnails/' + modelo.imagen_url) }}" alt="{{ modelo.titulo }}" style="width: 100%; height: 100%; object-fit: cover; border-top-left-radius: 8px; border-top-right-radius: 8px;">
                     {% else %}
                     <div class="modelo-placeholder">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2">

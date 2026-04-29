@@ -13,6 +13,7 @@ class Usuario(UserMixin, db.Model):
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     es_admin = db.Column(db.Boolean, default=False, nullable=False)
     imagen = db.Column(db.String(255), nullable=True)
+    generaciones_usadas = db.Column(db.Integer, default=0, nullable=False)
     
     # Relaciones
     modelos = db.relationship('Modelo', backref='creador', lazy=True)
@@ -51,9 +52,6 @@ class Modelo(db.Model):
     dim_x = db.Column(db.Float, default=9.0)
     dim_y = db.Column(db.Float, default=3.0)
     dim_z = db.Column(db.Float, default=3.0)
-    
-    # Recomendaciones generadas por IA
-    recomendaciones = db.Column(db.Text, nullable=True)
 
     # Relaciones
     metricas = db.relationship('Metrica', backref='modelo', lazy=True)
@@ -68,6 +66,7 @@ class Metrica(db.Model):
     detalle_error = db.Column(db.String(255), nullable=True)
     exitoso = db.Column(db.Boolean, nullable=True)
     fecha_generacion = db.Column(db.DateTime, default=datetime.utcnow)
+    recomendaciones = db.Column(db.Text, nullable=True)
 
 class Plan(db.Model):
     __tablename__ = 'planes'
