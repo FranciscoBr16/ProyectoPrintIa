@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app import db
-from app.models import Modelo, Metrica, Usuario, Plan, Suscripcion
+from app.models import Modelo, Metrica, Usuario, Plan, Suscripcion, Valoracion
 from app.utils import guardar_avatar, eliminar_avatar, mejorar_prompt_con_ia
 import time
 import datetime
@@ -274,7 +274,41 @@ def modelo(id_modelo):
         except Exception as e:
             print(f"Error consultando Meshy: {e}")
             
-    return render_template('modelo.html', modelo=modelo_obj, generando=generando, error_generacion=error_generacion)
+    # Obtener comentarios/valoraciones ordenados del más antiguo al más nuevo
+    comentarios = Valoracion.query.filter_by(id_modelo=id_modelo).order_by(Valoracion.fecha.asc()).all()
+            
+    return render_template('modelo.html', modelo=modelo_obj, generando=generando, error_generacion=error_generacion, comentarios=comentarios)
+
+@main_bp.route('/modelo/<int:id_modelo>/valorar', methods=['POST'])
+@login_required
+def valorar_modelo(id_modelo):
+    puntuacion = request.form.get('puntuacion')
+    comentario_texto = request.form.get('comentario')
+    
+    if not puntuacion:
+        flash('Debes seleccionar una puntuación.', 'error')
+        return redirect(url_for('main.modelo', id_modelo=id_modelo))
+    
+    # Verificar si el usuario ya valoró este modelo
+    valoracion = Valoracion.query.filter_by(id_modelo=id_modelo, id_usuario=current_user.id_usuario).first()
+    
+    if valoracion:
+        valoracion.puntuacion = int(puntuacion)
+        valoracion.comentario = comentario_texto
+        valoracion.fecha = datetime.datetime.utcnow()
+        flash('Tu valoración ha sido actualizada.', 'success')
+    else:
+        nueva_valoracion = Valoracion(
+            id_modelo=id_modelo,
+            id_usuario=current_user.id_usuario,
+            puntuacion=int(puntuacion),
+            comentario=comentario_texto
+        )
+        db.session.add(nueva_valoracion)
+        flash('¡Gracias por tu comentario!', 'success')
+        
+    db.session.commit()
+    return redirect(url_for('main.modelo', id_modelo=id_modelo))
 
 @main_bp.route('/modelo/<int:id_modelo>/toggle_public', methods=['POST'])
 @login_required
