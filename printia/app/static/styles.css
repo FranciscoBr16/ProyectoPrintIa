@@ -586,6 +586,28 @@ a {
     outline: 2px solid var(--color-primary);
 }
 
+.generador-input {
+    width: 100%;
+    background-color: #171A21;
+    border: none;
+    border-radius: 12px;
+    padding: 16px 24px;
+    color: var(--color-white);
+    font-family: var(--font-main);
+    font-size: 1.1rem;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    transition: outline 0.15s ease;
+}
+
+.generador-input::placeholder {
+    color: #8C929D;
+}
+
+.generador-input:focus {
+    outline: 2px solid var(--color-primary);
+}
+
 .generador-btn {
     align-self: center;
     padding: 18px 48px;

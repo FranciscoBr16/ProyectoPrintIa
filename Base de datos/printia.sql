@@ -35,7 +35,7 @@ CREATE TABLE `metricas` (
   PRIMARY KEY (`id_metrica`),
   KEY `fk_modelo_idx` (`id_modelo`),
   CONSTRAINT `fk_modelo2` FOREIGN KEY (`id_modelo`) REFERENCES `modelos` (`id_modelo`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -44,7 +44,7 @@ CREATE TABLE `metricas` (
 
 LOCK TABLES `metricas` WRITE;
 /*!40000 ALTER TABLE `metricas` DISABLE KEYS */;
-INSERT INTO `metricas` VALUES (15,24,97.66,NULL,1,'2026-04-29 13:05:06',NULL);
+INSERT INTO `metricas` VALUES (15,24,97.66,NULL,1,'2026-04-29 13:05:06',NULL),(16,25,80.74,NULL,1,'2026-05-04 20:02:54','<li>Escala: 100%</li>\n<li>Material: PLA</li>\n<li>Relleno: 20%</li>\n<li>Soportes: Sí</li>'),(17,27,104.21,NULL,1,'2026-05-04 20:25:38','<li>Escala: 100%</li>\n<li>Material: PLA</li>\n<li>Relleno: 20%</li>\n<li>Soportes: Sí</li>'),(18,29,56.36,NULL,1,'2026-05-05 11:38:24','<li>Escala: 100%</li>\n<li>Material: PLA</li>\n<li>Relleno: 20%</li>\n<li>Soportes: Sí</li>'),(19,30,103.76,NULL,1,'2026-05-05 11:48:12','<li>Escala: 100%</li>\n<li>Material: PLA</li>\n<li>Relleno: 20%</li>\n<li>Soportes: Sí</li>'),(20,31,81.76,NULL,1,'2026-05-05 11:54:48','<li>Escala: 100%</li>\n<li>Material: PLA</li>\n<li>Relleno: 20%</li>\n<li>Soportes: Sí</li>');
 /*!40000 ALTER TABLE `metricas` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -68,10 +68,11 @@ CREATE TABLE `modelos` (
   `dim_x` float DEFAULT '9',
   `dim_y` float DEFAULT '3',
   `dim_z` float DEFAULT '3',
+  `meshy_task_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id_modelo`),
   KEY `fk_usuario2_idx` (`id_usuario`),
   CONSTRAINT `fk_usuario2` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -80,7 +81,7 @@ CREATE TABLE `modelos` (
 
 LOCK TABLES `modelos` WRITE;
 /*!40000 ALTER TABLE `modelos` DISABLE KEYS */;
-INSERT INTO `modelos` VALUES (16,2,'soporte para celular','Modelo basado en: soporte para celular...','modelo_16_019dd535.stl','thumb_16_019dd535.png',1,'2026-04-28 17:49:34','2026-04-28 18:15:37',9,3,3),(17,1,'auto con forma de calabaza \r\n','Modelo basado en: auto con forma de ca...','modelo_17_019dd53c.stl','thumb_17_019dd53c.png',1,'2026-04-28 17:56:27','2026-04-28 21:24:57',9,3,3),(18,1,'Bajo fender (Instrumento)','Modelo basado en: Bajo fender (Instrum...','modelo_18_019dd552.stl','thumb_18_019dd552.png',0,'2026-04-28 18:21:09','2026-04-28 18:22:14',9,3,3),(19,1,'Guitarra stratocaster ','Modelo basado en: Guitarra stratocaste...','modelo_19_019dd555.stl','thumb_19_019dd555.png',0,'2026-04-28 18:23:45','2026-04-28 18:25:07',9,3,3),(20,1,'Maceta con forma de corazon','Maceta con forma de corazon','modelo_20_019dd5f9.stl','thumb_20_019dd5f9.png',0,'2026-04-28 21:23:07','2026-04-28 21:25:15',9,3,3),(21,1,'peon ajedrez','Peon ajedrez','modelo_21_019dd5fc.stl','thumb_21_019dd5fc.png',0,'2026-04-28 21:26:12','2026-04-28 21:28:15',9,3,3),(22,1,'A Pawn of Chess','A pawn of chess','modelo_22_019dd602.stl','thumb_22_019dd602.png',0,'2026-04-28 21:33:14','2026-04-28 21:34:30',9,3,3),(23,1,'A car with a flower up a roof','A car with a flower up a roof','modelo_23_019dd60a.stl','thumb_23_019dd60a.png',0,'2026-04-28 21:42:09','2026-04-28 21:44:12',9,3,3),(24,2,'Un gato sentado sobre sus patas traseras','Un gato sentado sobre sus patas traceras','modelo_24_019dd957.stl','thumb_24_019dd957.png',1,'2026-04-29 13:05:06','2026-04-29 17:28:52',9,3,3);
+INSERT INTO `modelos` VALUES (16,2,'soporte para celular','Modelo basado en: soporte para celular...','modelo_16_019dd535.stl','thumb_16_019dd535.png',1,'2026-04-28 17:49:34','2026-04-28 18:15:37',9,3,3,NULL),(17,1,'auto con forma de calabaza \r\n','Modelo basado en: auto con forma de ca...','modelo_17_019dd53c.stl','thumb_17_019dd53c.png',1,'2026-04-28 17:56:27','2026-04-28 21:24:57',9,3,3,NULL),(18,1,'Bajo fender (Instrumento)','Modelo basado en: Bajo fender (Instrum...','modelo_18_019dd552.stl','thumb_18_019dd552.png',0,'2026-04-28 18:21:09','2026-04-28 18:22:14',9,3,3,NULL),(19,1,'Guitarra stratocaster ','Modelo basado en: Guitarra stratocaste...','modelo_19_019dd555.stl','thumb_19_019dd555.png',0,'2026-04-28 18:23:45','2026-04-28 18:25:07',9,3,3,NULL),(20,1,'Maceta con forma de corazon','Maceta con forma de corazon','modelo_20_019dd5f9.stl','thumb_20_019dd5f9.png',0,'2026-04-28 21:23:07','2026-04-28 21:25:15',9,3,3,NULL),(21,1,'peon ajedrez','Peon ajedrez','modelo_21_019dd5fc.stl','thumb_21_019dd5fc.png',0,'2026-04-28 21:26:12','2026-04-28 21:28:15',9,3,3,NULL),(22,1,'A Pawn of Chess','A pawn of chess','modelo_22_019dd602.stl','thumb_22_019dd602.png',0,'2026-04-28 21:33:14','2026-04-28 21:34:30',9,3,3,NULL),(23,1,'A car with a flower up a roof','A car with a flower up a roof','modelo_23_019dd60a.stl','thumb_23_019dd60a.png',0,'2026-04-28 21:42:09','2026-04-28 21:44:12',9,3,3,NULL),(24,2,'Un gato sentado sobre sus patas traseras','Un gato sentado sobre sus patas traceras','modelo_24_019dd957.stl','thumb_24_019dd957.png',1,'2026-04-29 13:05:06','2026-04-29 17:28:52',9,3,3,NULL),(25,1,'Un perro sentado ','Un perro sentado ','modelo_25_019df495.stl','thumb_25_019df495.png',0,'2026-05-04 20:02:54','2026-05-04 20:04:15',9,3,3,'019df495-f8f1-753c-927e-bdd3558373ce'),(26,1,'Un perro sentado con un hueso en la boca','Un perro sentado  (Editado)','modelo_26_019df497.stl','thumb_26_019df497.png',0,'2026-05-04 20:04:45','2026-05-04 20:07:33',9,3,3,'019df497-b675-7367-a32c-9fbf666c5aec'),(27,1,'hombre sentado\r\n','Hombre sentado\r\n','modelo_27_019df4aa.stl','thumb_27_019df4aa.png',0,'2026-05-04 20:25:38','2026-05-04 20:27:22',9,3,3,'019df4aa-cd3c-7778-add9-8bdf3f1307cb'),(28,1,'hombre sentado tomando cafe\r\n','Hombre sentado\r\n (Editado)','modelo_28_019df4b2.stl','thumb_28_019df4b2.png',0,'2026-05-04 20:34:00','2026-05-04 20:35:43',9,3,3,'019df4b2-7c83-7ce1-8de3-eddf8667d7e1'),(29,1,'llavero con forma de corazón, superficie plana, sin partes sueltas','Llavero con forma de corazón, ','modelo_29_019df7ee.stl','thumb_29_019df7ee.png',0,'2026-05-05 11:38:24','2026-05-05 11:39:20',9,3,3,'019df7ee-712c-799e-8ea5-7907bee11fd5'),(30,1,'porta lapiceros con forma de calavera, base plana','Porta lapiceros con forma de c','modelo_30_019df7f7.stl','thumb_30_019df7f7.png',0,'2026-05-05 11:48:12','2026-05-05 11:49:56',9,3,3,'019df7f7-6773-7cc7-9880-e2fcc7e815c7'),(31,1,'Perro sentado sobre sus patas traseras en el suelo, con un hueso en la boca','Perro sentado sobre sus patas ','modelo_31_019df7fd.stl','thumb_31_019df7fd.png',0,'2026-05-05 11:54:48','2026-05-05 11:56:10',9,3,3,'019df7fd-74ce-7eaa-b555-1f7bdb1c2c6d');
 /*!40000 ALTER TABLE `modelos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -140,7 +141,7 @@ CREATE TABLE `suscripciones` (
 
 LOCK TABLES `suscripciones` WRITE;
 /*!40000 ALTER TABLE `suscripciones` DISABLE KEYS */;
-INSERT INTO `suscripciones` VALUES (1,1,1,'2026-04-20','2026-05-20','Activa','Tarjeta',10);
+INSERT INTO `suscripciones` VALUES (1,1,1,'2026-04-20','2026-05-20','Activa','Tarjeta',3);
 /*!40000 ALTER TABLE `suscripciones` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -214,4 +215,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-29 15:26:20
+-- Dump completed on 2026-05-05  9:16:19

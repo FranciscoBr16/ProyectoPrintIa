@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_login import login_required, current_user
 from app import db
 from app.models import Modelo, Metrica, Usuario, Plan, Suscripcion
-from app.utils import guardar_avatar, eliminar_avatar
+from app.utils import guardar_avatar, eliminar_avatar, mejorar_prompt_con_ia
 import time
 import datetime
 import random
@@ -93,8 +93,10 @@ def explorar():
 @login_required
 def generar():
     prompt = request.form.get('prompt')
-    if not prompt:
-        flash('Debes ingresar una descripción.', 'error')
+    titulo_usuario = request.form.get('titulo')
+    
+    if not prompt or not titulo_usuario:
+        flash('Debes ingresar un título y una descripción.', 'error')
         return redirect(url_for('main.generador'))
     
     # Validación de seguridad: verificar créditos
@@ -129,6 +131,12 @@ def generar():
         "target_formats": ["stl", "glb"]
     }
     
+    # --- MEJORA DEL PROMPT CON GEMINI ---
+    prompt_mejorado, fue_mejorado_por_ia = mejorar_prompt_con_ia(prompt)
+
+    # Actualizar el payload con el prompt mejorado
+    payload['prompt'] = prompt_mejorado
+
     try:
         response = requests.post('https://api.meshy.ai/openapi/v2/text-to-3d', headers=headers, json=payload)
         response.raise_for_status()
@@ -145,10 +153,11 @@ def generar():
         
         nuevo_modelo = Modelo(
             id_usuario=current_user.id_usuario,
-            prompt_texto=prompt,
-            titulo=prompt[:30].capitalize(),
+            prompt_texto=prompt,           # Prompt original del usuario (para mostrar)
+            titulo=titulo_usuario,
             archivo_url=f"task:{task_id}",
-            imagen_url="", # Se llenará cuando finalice
+            meshy_task_id=task_id,         # ID real de Meshy (para resiliencia)
+            imagen_url="",                 # Se llenará cuando finalice
             es_publico=False
         )
         db.session.add(nuevo_modelo)
@@ -182,9 +191,9 @@ def modelo(id_modelo):
     generando = False
     error_generacion = False
     
-    if modelo_obj.archivo_url and modelo_obj.archivo_url.startswith("task:"):
+    if modelo_obj.meshy_task_id and (not modelo_obj.archivo_url or modelo_obj.archivo_url.startswith("task:")):
         generando = True
-        task_id = modelo_obj.archivo_url.split(":")[1]
+        task_id = modelo_obj.meshy_task_id
         
         from flask import current_app
         import requests
@@ -193,26 +202,41 @@ def modelo(id_modelo):
         headers = {'Authorization': f'Bearer {api_key}'}
         
         try:
+            # Intentar primero con el endpoint de generación (V2)
             response = requests.get(f'https://api.meshy.ai/openapi/v2/text-to-3d/{task_id}', headers=headers)
+            
+            # Si no se encuentra en V2, podría ser una tarea de Rigging o Animación (V1)
+            if response.status_code == 404:
+                # Probar Rigging
+                response = requests.get(f'https://api.meshy.ai/openapi/v1/rigging/{task_id}', headers=headers)
+                if response.status_code == 404:
+                    # Probar Animación
+                    response = requests.get(f'https://api.meshy.ai/openapi/v1/animations/{task_id}', headers=headers)
+            
             if response.status_code == 200:
                 data = response.json()
                 status = data.get('status')
                 
                 if status == 'SUCCEEDED':
-                    # Descargar y guardar STL y miniatura
-                    stl_url = data.get('model_urls', {}).get('stl')
-                    thumb_url = data.get('thumbnail_url')
+                    result_data = data.get('result', {})
+                    # Extraer URLs según el tipo de tarea
+                    stl_url = result_data.get('stl') or result_data.get('rigged_character_glb_url') or result_data.get('animation_glb_url')
+                    thumb_url = data.get('thumbnail_url') or result_data.get('thumbnail_url')
                     
+                    # Para tareas de rigging/animation, el STL/GLB está en una estructura distinta
+                    if not stl_url and 'model_urls' in data:
+                        stl_url = data.get('model_urls', {}).get('stl')
+
                     if stl_url:
-                        stl_filename = f"modelo_{id_modelo}_{task_id[:8]}.stl"
+                        # Determinar extensión (glb para rigging/anim, stl para generación)
+                        ext = "glb" if "glb" in stl_url.lower() else "stl"
+                        stl_filename = f"modelo_{id_modelo}_{task_id[:8]}.{ext}"
                         stl_path = os.path.join(current_app.config['UPLOAD_FOLDER_MODELOS'], stl_filename)
                         os.makedirs(os.path.dirname(stl_path), exist_ok=True)
                         with open(stl_path, 'wb') as f:
                             f.write(requests.get(stl_url).content)
                         modelo_obj.archivo_url = stl_filename
-                    else:
-                        modelo_obj.archivo_url = None
-                        
+                    
                     if thumb_url:
                         thumb_filename = f"thumb_{id_modelo}_{task_id[:8]}.png"
                         thumb_path = os.path.join(current_app.config['UPLOAD_FOLDER_THUMBNAILS'], thumb_filename)
@@ -227,7 +251,6 @@ def modelo(id_modelo):
                     metrica = Metrica.query.filter_by(id_modelo=id_modelo).order_by(Metrica.fecha_generacion.desc()).first()
                     if metrica:
                         ahora = datetime.datetime.utcnow()
-                        # Calcular duración en segundos
                         duracion_segundos = (ahora - modelo_obj.fecha_creacion).total_seconds()
                         metrica.duracion = duracion_segundos
                         metrica.exitoso = True
@@ -242,8 +265,7 @@ def modelo(id_modelo):
                     metrica = Metrica.query.filter_by(id_modelo=id_modelo).order_by(Metrica.fecha_generacion.desc()).first()
                     if metrica:
                         metrica.exitoso = False
-                        # Intentar extraer el mensaje de error de la respuesta de Meshy
-                        error_msg = data.get('error', {}).get('message', 'Error desconocido en Meshy')
+                        error_msg = data.get('task_error', {}).get('message', data.get('error', {}).get('message', 'Error desconocido en Meshy'))
                         metrica.detalle_error = (error_msg[:250] + '...') if len(error_msg) > 250 else error_msg
                     
                     db.session.commit()
@@ -301,6 +323,7 @@ def eliminar_modelo(id_modelo):
     db.session.commit()
     flash('Modelo eliminado correctamente.', 'success')
     return redirect(url_for('main.galeria'))
+
 
 @main_bp.route('/planes')
 def planes():

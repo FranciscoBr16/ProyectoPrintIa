@@ -4,14 +4,178 @@
 <div class="generador-view">
     <div class="generador-header">
         <div class="generador-icon">
-            <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Logo PrintIA" width="100" style="object-fit: contain; mix-blend-mode: multiply;">
+            <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Logo PrintIA" width="80" style="object-fit: contain; mix-blend-mode: multiply;">
         </div>
-        <h2 class="generador-title">Generador 3D</h2>
+        <h2 class="generador-title">Generador 3D con IA</h2>
+        <p style="color: #8C929D; font-size: 0.95em; margin-top: 8px; max-width: 500px; text-align: center; line-height: 1.5;">
+            Describí tu idea en español o inglés. Nuestra IA la transformará en un prompt técnico optimizado para impresión 3D antes de generar el modelo.
+        </p>
     </div>
 
-    <form class="generador-form" action="{{ url_for('main.generar') }}" method="POST">
-        <textarea name="prompt" class="generador-textarea" placeholder="Describe tu modelo 3D..." required></textarea>
-        <button type="submit" class="btn btn--primary btn--large generador-btn">Generar modelo 3D</button>
+    <!-- Pipeline visual -->
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 20px 0 28px; flex-wrap: wrap;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(230,77,133,0.15); border: 2px solid #E64D85; display: flex; align-items: center; justify-content: center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E64D85" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <span style="font-size: 0.72em; color: #8C929D; text-align: center; max-width: 70px;">Tu descripción</span>
+        </div>
+        <div style="flex: 1; max-width: 50px; height: 2px; background: linear-gradient(to right, #E64D85, #8B5CF6); border-radius: 2px;"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(139,92,246,0.15); border: 2px solid #8B5CF6; display: flex; align-items: center; justify-content: center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <span style="font-size: 0.72em; color: #8C929D; text-align: center; max-width: 70px;">Gemini optimiza</span>
+        </div>
+        <div style="flex: 1; max-width: 50px; height: 2px; background: linear-gradient(to right, #8B5CF6, #3498db); border-radius: 2px;"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(52,152,219,0.15); border: 2px solid #3498db; display: flex; align-items: center; justify-content: center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <span style="font-size: 0.72em; color: #8C929D; text-align: center; max-width: 70px;">Meshy genera</span>
+        </div>
+        <div style="flex: 1; max-width: 50px; height: 2px; background: linear-gradient(to right, #3498db, #2ecc71); border-radius: 2px;"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(46,204,113,0.15); border: 2px solid #2ecc71; display: flex; align-items: center; justify-content: center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2ecc71" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span style="font-size: 0.72em; color: #8C929D; text-align: center; max-width: 70px;">Modelo listo</span>
+        </div>
+    </div>
+
+    <!-- Formulario principal -->
+    <form class="generador-form" id="form-generar" action="{{ url_for('main.generar') }}" method="POST" onsubmit="return iniciarGeneracion()" style="width: 100%; max-width: 720px;">
+        <div style="margin-bottom: 24px; width: 100%;">
+            <label for="titulo" style="display: block; color: #8C929D; font-size: 0.9em; margin-bottom: 8px; font-weight: 500;">Título del modelo</label>
+            <input type="text" name="titulo" id="titulo" class="generador-input" placeholder="Ej: Mi primer llavero..." required>
+        </div>
+
+        <div style="position: relative; width: 100%;">
+            <label for="prompt-input" style="display: block; color: #8C929D; font-size: 0.9em; margin-bottom: 8px; font-weight: 500;">Descripción del modelo</label>
+            <textarea 
+                name="prompt" 
+                id="prompt-input"
+                class="generador-textarea" 
+                placeholder="Ej: soporte de escritorio para auriculares, base plana..." 
+                required
+                style="min-height: 130px; padding-bottom: 45px; width: 100%; box-sizing: border-box;"
+            ></textarea>
+            <div style="position: absolute; bottom: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; pointer-events: none;">
+                <span id="char-count" style="font-size: 0.78em; color: #5A6270;">0 / 300 caracteres</span>
+                <span style="font-size: 0.75em; color: #5A6270; display: flex; align-items: center; gap: 5px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    Gemini optimizará tu prompt
+                </span>
+            </div>
+        </div>
+
+        <!-- Tips de prompts efectivos -->
+        <div style="background: rgba(139, 92, 246, 0.07); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+            <p style="color: #A78BFA; font-size: 0.82em; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Tips para mejores resultados
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div style="font-size: 0.78em; color: #8C929D;">
+                    <span style="color: #2ecc71; font-weight: 600;">✓</span> Incluí la pose: "parado", "sentado"
+                </div>
+                <div style="font-size: 0.78em; color: #8C929D;">
+                    <span style="color: #2ecc71; font-weight: 600;">✓</span> Mencioná el estilo: "realista", "cartoon"
+                </div>
+                <div style="font-size: 0.78em; color: #8C929D;">
+                    <span style="color: #2ecc71; font-weight: 600;">✓</span> Describí el objeto principal
+                </div>
+                <div style="font-size: 0.78em; color: #8C929D;">
+                    <span style="color: #2ecc71; font-weight: 600;">✓</span> Podés escribir en español
+                </div>
+            </div>
+        </div>
+
+        <!-- Ejemplos clickeables -->
+        <div style="margin-bottom: 18px; text-align: center;">
+            <p style="font-size: 0.8em; color: #5A6270; margin-bottom: 8px;">Ejemplos frecuentes:</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+                <button type="button" class="ejemplo-chip" onclick="setPrompt('soporte de escritorio para auriculares, base plana y estable')">🎧 Soporte auriculares</button>
+                <button type="button" class="ejemplo-chip" onclick="setPrompt('macetero cilíndrico con diseño geométrico, base sólida sin agujeros')">🌿 Macetero geométrico</button>
+                <button type="button" class="ejemplo-chip" onclick="setPrompt('llavero con forma de escudo, superficie plana, sin partes sueltas')">🔑 Llavero escudo</button>
+                <button type="button" class="ejemplo-chip" onclick="setPrompt('organizador de cables de escritorio con ranuras, forma rectangular, base plana')">🖥️ Organizador cables</button>
+                <button type="button" class="ejemplo-chip" onclick="setPrompt('figura decorativa de montaña con base plana, estilo low-poly minimalista')">⛰️ Montaña low-poly</button>
+                <button type="button" class="ejemplo-chip" onclick="setPrompt('soporte para celular de escritorio, ángulo inclinado, base ancha y estable')">📱 Soporte celular</button>
+                <button type="button" class="ejemplo-chip" onclick="setPrompt('porta lapiceros cilíndrico con diseño hexagonal, base plana')">✏️ Porta lapiceros</button>
+                <button type="button" class="ejemplo-chip" onclick="setPrompt('mini busto de personaje con armadura, pose estática, base circular plana')">⚔️ Busto con armadura</button>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--large generador-btn" id="btn-generar">
+            <span id="btn-text" style="display: flex; align-items: center; gap: 10px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                Generar modelo 3D
+            </span>
+            <span id="btn-loading" style="display: none; align-items: center; gap: 10px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-animation"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                Optimizando con Gemini...
+            </span>
+        </button>
     </form>
 </div>
+
+<style>
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .spin-animation { animation: spin 1s linear infinite; }
+
+    .ejemplo-chip {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid #2A3441;
+        color: #8C929D;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.78em;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+    .ejemplo-chip:hover {
+        background: rgba(230, 77, 133, 0.12);
+        border-color: #E64D85;
+        color: #E64D85;
+        transform: translateY(-1px);
+    }
+</style>
+
+<script>
+    const promptInput = document.getElementById('prompt-input');
+    const charCount = document.getElementById('char-count');
+    const MAX_CHARS = 300;
+
+    promptInput.addEventListener('input', function() {
+        const len = this.value.length;
+        if (len > MAX_CHARS) {
+            this.value = this.value.substring(0, MAX_CHARS);
+        }
+        charCount.textContent = `${Math.min(len, MAX_CHARS)} / ${MAX_CHARS} caracteres`;
+        charCount.style.color = len > 250 ? '#f1c40f' : '#5A6270';
+    });
+
+    function setPrompt(texto) {
+        promptInput.value = texto;
+        promptInput.dispatchEvent(new Event('input'));
+        promptInput.focus();
+    }
+
+    function iniciarGeneracion() {
+        const prompt = promptInput.value.trim();
+        if (!prompt) return false;
+
+        const btnText = document.getElementById('btn-text');
+        const btnLoading = document.getElementById('btn-loading');
+        const btn = document.getElementById('btn-generar');
+
+        btnText.style.display = 'none';
+        btnLoading.style.display = 'flex';
+        btn.disabled = true;
+        btn.style.opacity = '0.8';
+
+        return true; // Deja que el form se envíe
+    }
+</script>
 {% endblock %}

@@ -61,6 +61,7 @@ class Modelo(db.Model):
     es_publico = db.Column(db.Boolean, default=False, nullable=False)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    meshy_task_id = db.Column(db.String(255), nullable=True) # ID de la tarea en Meshy para edición/rigging
     
     # Dimensiones en cm
     dim_x = db.Column(db.Float, default=9.0)
