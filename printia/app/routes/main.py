@@ -310,6 +310,26 @@ def valorar_modelo(id_modelo):
     db.session.commit()
     return redirect(url_for('main.modelo', id_modelo=id_modelo))
 
+@main_bp.route('/modelo/<int:id_modelo>/feedback', methods=['POST'])
+@login_required
+def feedback_modelo(id_modelo):
+    modelo_obj = Modelo.query.get_or_404(id_modelo)
+    
+    # Solo el dueño puede dar feedback de la generación
+    if modelo_obj.id_usuario != current_user.id_usuario:
+        return jsonify({'error': 'No tienes permiso para calificar la generación de este modelo.'}), 403
+    
+    data = request.get_json()
+    feedback = data.get('feedback') # expect 1 or -1
+    
+    if feedback not in [1, -1, 0]:
+        return jsonify({'error': 'Feedback no válido.'}), 400
+        
+    modelo_obj.feedback_ia = feedback
+    db.session.commit()
+    
+    return jsonify({'status': 'success', 'feedback': feedback})
+
 @main_bp.route('/modelo/<int:id_modelo>/toggle_public', methods=['POST'])
 @login_required
 def toggle_public(id_modelo):

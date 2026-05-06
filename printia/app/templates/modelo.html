@@ -35,9 +35,26 @@
                 <p>Sin modelo 3D asociado</p>
             </div>
         {% endif %}
-        <div class="visor-model-title">
+        <div class="visor-overlay-title">
             <p>{{ modelo.titulo }}</p>
         </div>
+
+        {% if current_user.id_usuario == modelo.id_usuario %}
+            <div class="visor-feedback-trigger"></div>
+            <div class="visor-overlay-feedback">
+                <div class="ai-feedback-container">
+                    <span class="feedback-label">¿Te gusta el Modelo?</span>
+                    <div class="feedback-buttons">
+                        <button onclick="sendFeedback(1)" id="btn-feedback-pos" class="feedback-btn {{ 'active' if modelo.feedback_ia == 1 else '' }}" title="Aprobar generación">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                        </button>
+                        <button onclick="sendFeedback(-1)" id="btn-feedback-neg" class="feedback-btn {{ 'active' if modelo.feedback_ia == -1 else '' }}" title="Desaprobar generación">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
     </div>
 
     {% if modelo.archivo_url and not generando and not error_generacion %}
@@ -274,6 +291,30 @@
 <script>
     function abrirModalModificar() { document.getElementById('modal-modificar').style.display = 'flex'; }
     function cerrarModalModificar() { document.getElementById('modal-modificar').style.display = 'none'; }
+
+    function sendFeedback(val) {
+        fetch("{{ url_for('main.feedback_modelo', id_modelo=modelo.id_modelo) }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ feedback: val })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const btnPos = document.getElementById('btn-feedback-pos');
+                const btnNeg = document.getElementById('btn-feedback-neg');
+                
+                btnPos.classList.remove('active');
+                btnNeg.classList.remove('active');
+                
+                if (data.feedback === 1) btnPos.classList.add('active');
+                if (data.feedback === -1) btnNeg.classList.add('active');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 </script>
 {% endif %}
 

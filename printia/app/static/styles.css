@@ -1692,3 +1692,131 @@ a {
     font-weight: 700;
     color: #8C929D;
 }
+
+/* ================================================
+   AI FEEDBACK BUTTONS
+   ================================================ */
+.ai-feedback-container {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feedback-btn {
+    background: transparent;
+    border: 1.5px solid rgba(140, 146, 157, 0.3);
+    color: #8C929D;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+}
+
+.feedback-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    transform: translateY(-2px);
+    background: rgba(230, 77, 133, 0.1);
+}
+
+.feedback-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(230, 77, 133, 0.3);
+}
+
+#btn-feedback-neg:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
+}
+
+#btn-feedback-neg.active {
+    background: #e74c3c;
+    border-color: #e74c3c;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+/* New Overlay Styles */
+.visor-overlay-title {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(23, 26, 33, 0.85);
+    backdrop-filter: blur(8px);
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 5;
+    pointer-events: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.visor-overlay-title p {
+    margin: 0;
+    color: white;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.visor-overlay-feedback {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(23, 26, 33, 0.85);
+    backdrop-filter: blur(8px);
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 6;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.visor-feedback-trigger {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40%;
+    height: 100%;
+    z-index: 5;
+}
+
+.visor-feedback-trigger:hover + .visor-overlay-feedback,
+.visor-overlay-feedback:hover {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.ai-feedback-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent; /* Background handled by overlay */
+    padding: 0;
+    border: none;
+    backdrop-filter: none;
+}
+
+.feedback-label {
+    font-size: 0.7rem;
+    color: #8C929D;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.feedback-buttons {
+    display: flex;
+    gap: 8px;
+}
