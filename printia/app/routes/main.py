@@ -147,9 +147,12 @@ def generar():
         if suscripcion:
             suscripcion.modelos_restantes = max(0, suscripcion.modelos_restantes - 1)
             
-        # Generar recomendaciones de impresión con IA
-        from app.utils import generar_recomendaciones_ia
-        recomendaciones_html = generar_recomendaciones_ia(prompt)
+        # Generar recomendaciones de impresión con IA (solo para usuarios gratuitos)
+        # Los usuarios PRO usarán el análisis visual con Gemini Vision después de la generación
+        recomendaciones_html = None
+        if not current_user.es_pro:
+            from app.utils import generar_recomendaciones_ia
+            recomendaciones_html = generar_recomendaciones_ia(prompt)
         
         nuevo_modelo = Modelo(
             id_usuario=current_user.id_usuario,
@@ -163,7 +166,7 @@ def generar():
         db.session.add(nuevo_modelo)
         db.session.flush() # Para obtener el id_modelo antes del commit final
         
-        # Guardar recomendaciones en la tabla de métricas
+        # Guardar métrica (con o sin recomendaciones según el tipo de usuario)
         nueva_metrica = Metrica(
             id_modelo=nuevo_modelo.id_modelo,
             recomendaciones=recomendaciones_html
@@ -277,7 +280,59 @@ def modelo(id_modelo):
     # Obtener comentarios/valoraciones ordenados del más antiguo al más nuevo
     comentarios = Valoracion.query.filter_by(id_modelo=id_modelo).order_by(Valoracion.fecha.asc()).all()
             
-    return render_template('modelo.html', modelo=modelo_obj, generando=generando, error_generacion=error_generacion, comentarios=comentarios)
+    # Verificar si el usuario actual es PRO (suscripción activa)
+    es_pro = current_user.es_pro
+    
+    return render_template('modelo.html', modelo=modelo_obj, generando=generando, error_generacion=error_generacion, comentarios=comentarios, es_pro=es_pro)
+
+@main_bp.route('/modelo/<int:id_modelo>/generar_recomendaciones', methods=['POST'])
+@login_required
+def generar_recomendaciones_pro(id_modelo):
+    """Genera recomendaciones PRO analizando visualmente el thumbnail del modelo con Gemini Vision."""
+    modelo_obj = Modelo.query.get_or_404(id_modelo)
+    
+    # Solo el dueño puede generar recomendaciones
+    if modelo_obj.id_usuario != current_user.id_usuario:
+        return jsonify({'error': 'No tienes permiso para generar recomendaciones de este modelo.'}), 403
+    
+    # Verificar que el usuario sea PRO
+    if not current_user.es_pro:
+        return jsonify({'error': 'Esta funcionalidad está disponible solo para usuarios PRO.'}), 403
+    
+    # Verificar que el modelo tenga thumbnail (ya terminó de generar)
+    if not modelo_obj.imagen_url or modelo_obj.imagen_url == 'mock_image.png':
+        return jsonify({'error': 'El modelo aún no tiene imagen de referencia. Espera a que termine de generarse.'}), 400
+    
+    from flask import current_app
+    import os
+    
+    # Construir la ruta al archivo thumbnail
+    thumb_path = os.path.join(current_app.config['UPLOAD_FOLDER_THUMBNAILS'], modelo_obj.imagen_url)
+    
+    if not os.path.exists(thumb_path):
+        return jsonify({'error': 'No se encontró la imagen del modelo en el servidor.'}), 404
+    
+    from app.utils import generar_recomendaciones_vision
+    recomendaciones_html = generar_recomendaciones_vision(thumb_path, modelo_obj.prompt_texto)
+    
+    if not recomendaciones_html:
+        return jsonify({'error': 'No se pudieron generar las recomendaciones. Intenta de nuevo más tarde.'}), 500
+    
+    # Guardar en la métrica existente del modelo
+    metrica = Metrica.query.filter_by(id_modelo=id_modelo).order_by(Metrica.fecha_generacion.desc()).first()
+    if metrica:
+        metrica.recomendaciones = recomendaciones_html
+    else:
+        # Crear nueva métrica si no existe
+        metrica = Metrica(
+            id_modelo=id_modelo,
+            recomendaciones=recomendaciones_html
+        )
+        db.session.add(metrica)
+    
+    db.session.commit()
+    
+    return jsonify({'status': 'success', 'recomendaciones': recomendaciones_html})
 
 @main_bp.route('/modelo/<int:id_modelo>/valorar', methods=['POST'])
 @login_required

@@ -106,9 +106,12 @@
 
     <div class="visor-info-panel" style="justify-content: center; text-align: center; flex-direction: column; align-items: center;">
         <div class="visor-column" style="width: 100%; max-width: 600px;">
-            <h3 class="visor-subtitle">Recomendaciones de Impresión</h3>
-            <ul class="visor-recs" style="display: inline-block; text-align: left;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <h3 class="visor-subtitle" style="margin: 0;">Recomendaciones de Impresión</h3>
                 {% set metrica_recs = (modelo.metricas | selectattr('recomendaciones', 'ne', none) | list | first) if modelo.metricas else none %}
+            </div>
+
+            <ul class="visor-recs" id="recs-list" style="display: inline-block; text-align: left;">
                 {% if metrica_recs and metrica_recs.recomendaciones %}
                     {{ metrica_recs.recomendaciones | safe }}
                 {% else %}
@@ -118,6 +121,61 @@
                     <li>Soporte: Según geometría</li>
                 {% endif %}
             </ul>
+
+            <!-- Botón PRO: Generar recomendaciones avanzadas con análisis visual -->
+            {% set tiene_recomendaciones = metrica_recs and metrica_recs.recomendaciones %}
+            {% if current_user.id_usuario == modelo.id_usuario and es_pro and modelo.archivo_url and not generando and not error_generacion and not tiene_recomendaciones %}
+            <div id="pro-recs-section" style="margin-top: 20px; width: 100%;">
+                <button id="btn-generar-recs-pro" onclick="generarRecomendacionesPro()" 
+                    style="
+                        display: inline-flex; align-items: center; gap: 10px;
+                        padding: 12px 24px; border-radius: 10px; cursor: pointer;
+                        background: linear-gradient(135deg, #E64D85 0%, #a855f7 100%);
+                        color: #fff; border: none; font-weight: 700; font-size: 0.9rem;
+                        transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(230, 77, 133, 0.3);
+                        letter-spacing: 0.3px;
+                    "
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(230, 77, 133, 0.45)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(230, 77, 133, 0.3)';">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                    </svg>
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        Análisis Visual con IA
+                        <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 800;">PRO</span>
+                    </span>
+                </button>
+
+                <!-- Estado de carga -->
+                <div id="recs-loading" style="display: none; margin-top: 15px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 10px;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" class="spin-animation">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                        <span style="color: #a855f7; font-weight: 600; font-size: 0.9rem;">Analizando la geometría del modelo con Gemini Vision...</span>
+                    </div>
+                </div>
+
+                <!-- Mensaje de error -->
+                <div id="recs-error" style="display: none; margin-top: 15px;">
+                    <div style="padding: 12px 16px; background: rgba(255, 77, 77, 0.08); border: 1px solid rgba(255, 77, 77, 0.2); border-radius: 8px; color: #FF4D4D; font-size: 0.9rem; text-align: left;">
+                        <span id="recs-error-msg"></span>
+                    </div>
+                </div>
+
+                <p style="color: #555; font-size: 0.8rem; margin-top: 10px; font-style: italic;">
+                    Analiza visualmente tu modelo para obtener recomendaciones técnicas detalladas.
+                </p>
+            </div>
+            {% elif current_user.id_usuario == modelo.id_usuario and not es_pro and modelo.archivo_url and not generando and not tiene_recomendaciones %}
+            <div style="margin-top: 20px; padding: 15px; background: rgba(168, 85, 247, 0.06); border: 1px dashed rgba(168, 85, 247, 0.3); border-radius: 10px; max-width: 100%;">
+                <p style="color: #a855f7; font-size: 0.85rem; margin: 0; display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span><b>Análisis Visual con IA</b> — Disponible en el plan <a href="{{ url_for('main.planes') }}" style="color: #E64D85; font-weight: 700; text-decoration: underline;">PRO</a></span>
+                </p>
+            </div>
+            {% endif %}
         </div>
         
         <div class="slicer-info" style="margin-top: 20px; padding: 15px; background: rgba(52, 152, 219, 0.1); border-left: 4px solid #3498db; border-radius: 4px; max-width: 600px; text-align: left;">
@@ -152,7 +210,8 @@
         {% endif %}
     </div>
 
-    <!-- Sección de Comentarios -->
+    <!-- Sección de Comentarios (solo visible en modelos públicos) -->
+    {% if modelo.es_publico %}
     <div class="comments-section" style="margin-top: 40px; border-top: 1px solid #2A3441; padding-top: 30px; text-align: left;">
         <h3 style="color: #fff; margin-bottom: 25px; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -231,6 +290,7 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 </div>
 
 <script>
@@ -317,5 +377,55 @@
     }
 </script>
 {% endif %}
+
+<script>
+    function generarRecomendacionesPro() {
+        const btn = document.getElementById('btn-generar-recs-pro');
+        const loading = document.getElementById('recs-loading');
+        const errorDiv = document.getElementById('recs-error');
+        const errorMsg = document.getElementById('recs-error-msg');
+        const recsList = document.getElementById('recs-list');
+
+        if (!btn || !loading) return;
+
+        // Mostrar loading, ocultar botón y error
+        btn.style.display = 'none';
+        loading.style.display = 'block';
+        if (errorDiv) errorDiv.style.display = 'none';
+
+        fetch("{{ url_for('main.generar_recomendaciones_pro', id_modelo=modelo.id_modelo) }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        })
+        .then(response => response.json().then(data => ({status: response.status, data: data})))
+        .then(({status, data}) => {
+            loading.style.display = 'none';
+
+            if (status === 200 && data.status === 'success') {
+                // Recargar la página para mostrar las recomendaciones guardadas
+                // y ocultar el botón de generación
+                window.location.reload();
+            } else {
+                // Mostrar error
+                if (errorDiv && errorMsg) {
+                    errorMsg.textContent = data.error || 'Error desconocido al generar recomendaciones.';
+                    errorDiv.style.display = 'block';
+                }
+                btn.style.display = 'inline-flex';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loading.style.display = 'none';
+            if (errorDiv && errorMsg) {
+                errorMsg.textContent = 'Error de conexión. Verifica tu conexión e intenta de nuevo.';
+                errorDiv.style.display = 'block';
+            }
+            btn.style.display = 'inline-flex';
+        });
+    }
+</script>
 
 {% endblock %}

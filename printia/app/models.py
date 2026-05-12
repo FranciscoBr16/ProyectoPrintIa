@@ -43,6 +43,11 @@ class Usuario(UserMixin, db.Model):
     def get_id(self):
         return str(self.id_usuario)
     
+    @property
+    def es_pro(self):
+        """Verifica si el usuario tiene una suscripción activa (es PRO)."""
+        return any(s.estado == 'Activa' for s in self.suscripciones)
+
     def avatar_url(self):
         if self.imagen:
             from flask import url_for

@@ -125,6 +125,137 @@ def generar_recomendaciones_ia(prompt_modelo):
     return fallback_recs
 
 
+def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
+    """
+    Usa Gemini Vision API para analizar la imagen thumbnail del modelo 3D
+    y generar recomendaciones de impresión profundas basadas en el análisis visual.
+    
+    Args:
+        ruta_imagen: Ruta absoluta al archivo de imagen (thumb) del modelo.
+        prompt_modelo: Prompt/descripción original del modelo (contexto adicional).
+    
+    Returns:
+        str: HTML con las recomendaciones (<li> items) o None si falla.
+    """
+    import requests
+    import base64
+
+    gemini_key = os.getenv('GEMINI_API_KEY')
+    if not gemini_key:
+        print("Error: GEMINI_API_KEY no configurada para recomendaciones con visión.")
+        return None
+
+    # Leer y codificar la imagen en base64
+    if not os.path.exists(ruta_imagen):
+        print(f"Error: No se encontró la imagen del modelo en {ruta_imagen}")
+        return None
+
+    try:
+        with open(ruta_imagen, 'rb') as f:
+            imagen_bytes = f.read()
+        imagen_b64 = base64.b64encode(imagen_bytes).decode('utf-8')
+    except Exception as e:
+        print(f"Error leyendo la imagen del modelo: {e}")
+        return None
+
+    # Determinar mime type
+    ext = ruta_imagen.rsplit('.', 1)[-1].lower()
+    mime_types = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'webp': 'image/webp'}
+    mime_type = mime_types.get(ext, 'image/png')
+
+    system_instruction = (
+        "Eres un ingeniero experto en impresión 3D FDM con más de 10 años de experiencia. "
+        "Analiza visualmente la imagen del modelo 3D que te proporcionan y genera recomendaciones "
+        "técnicas detalladas y específicas para su impresión exitosa.\n\n"
+        "ANALIZA en la imagen:\n"
+        "1. GEOMETRÍA: Identifica voladizos, puentes, partes finas, cavidades o huecos.\n"
+        "2. ORIENTACIÓN ÓPTIMA: Basándote en la forma, recomienda cómo orientar la pieza en la cama.\n"
+        "3. SOPORTES: Evalúa si necesita soportes y dónde específicamente.\n"
+        "4. MATERIAL: Recomienda el material más adecuado (PLA, PETG, ABS, TPU) según la forma y uso probable.\n"
+        "5. RELLENO: Sugiere porcentaje de relleno y patrón según la geometría observada.\n"
+        "6. CAPA Y VELOCIDAD: Recomienda altura de capa y velocidad según el nivel de detalle visible.\n"
+        "7. POSPROCESADO: Si aplica, sugiere técnicas de acabado.\n\n"
+        "REGLAS DE FORMATO:\n"
+        "- Devuelve EXACTAMENTE entre 5 y 7 recomendaciones.\n"
+        "- Cada recomendación debe estar en formato HTML: <li><b>Título:</b> Detalle específico</li>\n"
+        "- Sé específico y técnico. NO des recomendaciones genéricas.\n"
+        "- Responde SOLO con los items <li>, sin texto adicional.\n"
+        "- Responde en español."
+    )
+
+    contexto_extra = f"\nContexto: el modelo fue generado con el prompt '{prompt_modelo}'." if prompt_modelo else ""
+
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    headers = {"Content-Type": "application/json"}
+    params = {"key": gemini_key}
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": system_instruction}]
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": imagen_b64
+                        }
+                    },
+                    {
+                        "text": f"Analiza visualmente este modelo 3D y dame recomendaciones técnicas detalladas para imprimirlo en FDM.{contexto_extra}"
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.4,
+            "maxOutputTokens": 1500,
+            "topP": 0.9
+        }
+    }
+
+    try:
+        response = requests.post(url, headers=headers, params=params, json=payload, timeout=45)
+        if response.status_code == 200:
+            data = response.json()
+            texto_generado = (
+                data.get("candidates", [{}])[0]
+                    .get("content", {})
+                    .get("parts", [{}])[0]
+                    .get("text", "")
+                    .strip()
+            )
+
+            if texto_generado:
+                import re
+                # Extraer todos los <li>...</li>
+                items = re.findall(r'<li>(.*?)</li>', texto_generado, re.IGNORECASE | re.DOTALL)
+                if items:
+                    html_recs = "\n".join(f"<li>{item.strip()}</li>" for item in items[:7])
+                    return html_recs
+                
+                # Fallback: si no encontró <li>, intentar parsear líneas
+                lineas = [l.strip() for l in texto_generado.split('\n') if l.strip()]
+                html_recs = ""
+                count = 0
+                for line in lineas:
+                    if count >= 7:
+                        break
+                    clean = re.sub(r'^[\-*\d.]+\s*', '', line).strip()
+                    if clean and len(clean) > 10:
+                        html_recs += f"<li>{clean}</li>\n"
+                        count += 1
+                if html_recs:
+                    return html_recs
+        else:
+            print(f"Error Gemini Vision API ({response.status_code}): {response.text[:300]}")
+    except Exception as e:
+        print(f"Excepción en generar_recomendaciones_vision: {e}")
+
+    return None
+
+
 def mejorar_prompt_con_ia(prompt_usuario):
     """
     Usa Gemini Flash para transformar el prompt del usuario en un prompt técnico
@@ -178,7 +309,7 @@ def mejorar_prompt_con_ia(prompt_usuario):
     user_message = f"User description (may be in Spanish): \"{prompt_usuario}\""
 
     import requests as req
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     headers = {"Content-Type": "application/json"}
     params = {"key": gemini_key}
     payload = {
