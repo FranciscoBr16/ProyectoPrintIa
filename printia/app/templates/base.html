@@ -27,6 +27,9 @@
             <li><a href="{{ url_for('main.explorar') }}" class="navbar__link {% if request.endpoint == 'main.explorar' %}navbar__link--active{% endif %}">Explorar</a></li>
             <li><a href="{{ url_for('main.planes') }}" class="navbar__link {% if request.endpoint == 'main.planes' %}navbar__link--active{% endif %}">Planes</a></li>
             <li><a href="{{ url_for('main.como_funciona') }}" class="navbar__link {% if request.endpoint == 'main.como_funciona' %}navbar__link--active{% endif %}">Como funciona</a></li>
+            {% if current_user.is_authenticated and current_user.es_admin %}
+                <li><a href="{{ url_for('main.admin_dashboard') }}" class="navbar__link {% if request.endpoint == 'main.admin_dashboard' %}navbar__link--active{% endif %}">Métricas</a></li>
+            {% endif %}
         </ul>
 
         {% if current_user.is_authenticated %}

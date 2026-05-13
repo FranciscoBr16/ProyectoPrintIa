@@ -1,0 +1,347 @@
+{% extends "dashboard_layout.html" %}
+
+{% block title %}Admin Dashboard - PrintIA Solutions{% endblock %}
+
+{% block dashboard_content %}
+<div class="admin-dashboard admin-dashboard--full">
+    <div class="welcome-header welcome-header--wide">
+        <h2 class="dashboard-title">Panel de Administración 🔐</h2>
+        <p class="dashboard-subtitle">Métricas globales y rendimiento del sistema en tiempo real.</p>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="stats-grid stats-grid--full">
+        <div class="stats-card stats-card--admin">
+            <div class="stats-card__icon" style="background-color: #E0F2FE; color: #0284C7;">👥</div>
+            <div class="stats-card__info">
+                <span class="stats-card__label">Usuarios Totales</span>
+                <span class="stats-card__value">{{ total_usuarios }}</span>
+                <span class="stats-card__sublabel">{{ usuarios_pro }} usuarios PRO</span>
+            </div>
+        </div>
+        <div class="stats-card stats-card--admin">
+            <div class="stats-card__icon" style="background-color: #F0FDF4; color: #16A34A;">📦</div>
+            <div class="stats-card__info">
+                <span class="stats-card__label">Modelos Generados</span>
+                <span class="stats-card__value">{{ total_modelos }}</span>
+                <span class="stats-card__sublabel">{{ modelos_semana }} esta semana</span>
+            </div>
+        </div>
+        <div class="stats-card stats-card--admin">
+            <div class="stats-card__icon" style="background-color: #FFF7ED; color: #EA580C;">⏱️</div>
+            <div class="stats-card__info">
+                <span class="stats-card__label">Tiempo Promedio</span>
+                <span class="stats-card__value">{{ tiempo_promedio }}s</span>
+                <span class="stats-card__sublabel">Mín: {{ tiempo_min }}s | Máx: {{ tiempo_max }}s</span>
+            </div>
+        </div>
+        <div class="stats-card stats-card--admin">
+            <div class="stats-card__icon" style="background-color: #FAF5FF; color: #7C3AED;">💎</div>
+            <div class="stats-card__info">
+                <span class="stats-card__label">Suscripciones</span>
+                <span class="stats-card__value">{{ suscritos_mes_actual }}</span>
+                <span class="stats-card__sublabel">
+                    {% if suscritos_mes_actual > suscritos_mes_anterior %}
+                        <span style="color: #16A34A;">↑</span>
+                    {% elif suscritos_mes_actual < suscritos_mes_anterior %}
+                        <span style="color: #DC2626;">↓</span>
+                    {% endif %}
+                    vs {{ suscritos_mes_anterior }} el mes pasado
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-main-grid admin-main-grid--full">
+        <!-- Main Column -->
+        <div class="admin-charts-main">
+            <!-- Row 1: Today & Year -->
+            <div class="charts-row">
+                <div class="chart-box">
+                    <div class="box-header">
+                        <h3 class="box-title">Modelos Generados Hoy</h3>
+                        <span class="badge badge--success">En tiempo real</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartModelosHoy"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <div class="box-header">
+                        <h3 class="box-title">Actividad Mensual ({{ labels_anio[0] }} - {{ labels_anio[-1] }})</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartAnual"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Week & Times -->
+            <div class="charts-row mt-1-5">
+                <div class="chart-box">
+                    <div class="box-header">
+                        <h3 class="box-title">Actividad de los Últimos 7 Días</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartSemana"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <div class="box-header">
+                        <h3 class="box-title">Distribución de Tiempos</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartDistTiempos"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Column -->
+        <div class="admin-side-charts">
+            <!-- Doughnut Chart: Success Rate -->
+            <div class="chart-box chart-box--small">
+                <h3 class="box-title">Estado de Generaciones</h3>
+                <div class="chart-container chart-container--doughnut">
+                    <canvas id="chartExitos"></canvas>
+                </div>
+            </div>
+
+            <!-- Doughnut Chart: Feedback -->
+            <div class="chart-box chart-box--small">
+                <h3 class="box-title">Satisfacción (Feedback)</h3>
+                <div class="chart-container chart-container--doughnut">
+                    <canvas id="chartFeedback"></canvas>
+                </div>
+            </div>
+
+            <!-- New Doughnut Chart: Recommendations -->
+            <div class="chart-box chart-box--small">
+                <h3 class="box-title">Modelos con Recomendaciones</h3>
+                <div class="chart-container chart-container--doughnut">
+                    <canvas id="chartRecom"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
+    // 1. Modelos Hoy
+    const ctxHoy = document.getElementById('chartModelosHoy').getContext('2d');
+    new Chart(ctxHoy, {
+        type: 'line',
+        data: {
+            labels: {{ labels_hoy|tojson }},
+            datasets: [{
+                label: 'Modelos',
+                data: {{ valores_hoy|tojson }},
+                borderColor: '#E64D85',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(230, 77, 133, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, min: 0, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 2. Actividad Anual
+    const ctxAnual = document.getElementById('chartAnual').getContext('2d');
+    new Chart(ctxAnual, {
+        data: {
+            labels: {{ labels_anio|tojson }},
+            datasets: [
+                {
+                    type: 'line',
+                    label: 'Tendencia',
+                    data: {{ valores_anio|tojson }},
+                    borderColor: 'rgb(23, 27, 33)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: false,
+                    order: 1
+                },
+                {
+                    type: 'bar',
+                    label: 'Modelos',
+                    data: {{ valores_anio|tojson }},
+                    backgroundColor: '#E64D85',
+                    borderRadius: 5,
+                    order: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, min: 0, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 3. Actividad Semanal
+    const ctxSemana = document.getElementById('chartSemana').getContext('2d');
+    new Chart(ctxSemana, {
+        type: 'line',
+        data: {
+            labels: {{ labels_semana|tojson }},
+            datasets: [{
+                label: 'Generaciones',
+                data: {{ valores_semana|tojson }},
+                borderColor: '#cf3a72',
+                borderWidth: 3,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, min: 0, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 4. Distribución Tiempos
+    const ctxDist = document.getElementById('chartDistTiempos').getContext('2d');
+    new Chart(ctxDist, {
+        data: {
+            labels: {{ dist_labels|tojson }},
+            datasets: [
+                {
+                    type: 'line',
+                    label: 'Curva',
+                    data: {{ dist_data|tojson }},
+                    borderColor: 'rgb(23, 27, 33)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: false,
+                    order: 1
+                },
+                {
+                    type: 'bar',
+                    data: {{ dist_data|tojson }},
+                    backgroundColor: '#E64D85',
+                    borderRadius: 4,
+                    order: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, min: 0, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 5. Éxitos
+    new Chart(document.getElementById('chartExitos'), {
+        type: 'doughnut',
+        data: { labels: ['Éxitos', 'Errores'], datasets: [{ data: [{{ exitos }}, {{ errores }}], backgroundColor: ['#2ecc71', '#e74c3c'] }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+    });
+
+    // 6. Feedback
+    new Chart(document.getElementById('chartFeedback'), {
+        type: 'doughnut',
+        data: { labels: ['Likes', 'Dislikes'], datasets: [{ data: [{{ likes }}, {{ dislikes }}], backgroundColor: ['#E64D85', 'rgb(23, 27, 33)'] }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+    });
+
+    // 7. Recomendaciones
+    new Chart(document.getElementById('chartRecom'), {
+        type: 'doughnut',
+        data: { labels: ['Con Recom.', 'Sin Recom.'], datasets: [{ data: [{{ con_recom }}, {{ sin_recom }}], backgroundColor: ['#cf3a72', 'rgb(23, 27, 33)'] }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+    });
+});
+</script>
+
+<style>
+.admin-dashboard--full {
+    width: 100%;
+    max-width: 1600px !important;
+    padding: 1rem 2rem;
+    align-self: flex-start;
+}
+
+.welcome-header--wide {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 2rem;
+}
+
+.stats-grid--full {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.admin-main-grid--full {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    width: 100%;
+}
+
+.charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+    .charts-row { grid-template-columns: 1fr; }
+    .admin-main-grid--full { grid-template-columns: 1fr; }
+}
+
+.chart-box {
+    background: white;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+.mt-1-5 { margin-top: 1.5rem; }
+
+.chart-container { height: 280px; position: relative; }
+.chart-container--doughnut { height: 200px; }
+
+.box-title { font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; }
+
+/* Sobreescribir el centrado del dashboard-content si es necesario */
+.dashboard-content {
+    align-items: flex-start !important;
+}
+</style>
+{% endblock %}

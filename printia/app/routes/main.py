@@ -567,3 +567,150 @@ def checkout():
         return redirect(url_for('main.planes'))
         
     return render_template('checkout.html')
+
+def distribucion_tiempos():
+    from app.models import Metrica
+    rangos = [
+        {"label": "< 20s", "min": 0, "max": 20},
+        {"label": "20-30s", "min": 20, "max": 30},
+        {"label": "30-40s", "min": 30, "max": 40},
+        {"label": "40-50s", "min": 40, "max": 50},
+        {"label": "50-60s", "min": 50, "max": 60},
+        {"label": "60-70s", "min": 60, "max": 70},
+        {"label": "70-80s", "min": 70, "max": 80},
+        {"label": "80-90s", "min": 80, "max": 90},
+        {"label": "90-100s", "min": 90, "max": 100},
+        {"label": "100-110s", "min": 100, "max": 110},
+        {"label": "110-120s", "min": 110, "max": 120},
+        {"label": "> 120s", "min": 120, "max": 99999}
+    ]
+    resultados = []
+    for r in rangos:
+        count = Metrica.query.filter(Metrica.duracion >= r['min'], Metrica.duracion < r['max'], Metrica.exitoso == True).count()
+        resultados.append(count)
+    return {"labels": [r['label'] for r in rangos], "data": resultados}
+
+def get_datos_semana():
+    from app.models import Metrica
+    from sqlalchemy import func
+    import datetime
+    hoy = datetime.datetime.utcnow().date()
+    labels = []
+    valores = []
+    for i in range(6, -1, -1):
+        fecha = hoy - datetime.timedelta(days=i)
+        count = Metrica.query.filter(func.date(Metrica.fecha_generacion) == fecha).count()
+        labels.append(fecha.strftime('%d/%m'))
+        valores.append(count)
+    return {"labels": labels, "valores": valores}
+
+def get_datos_anuales():
+    from app.models import Metrica
+    from sqlalchemy import func
+    import datetime
+    hoy = datetime.datetime.utcnow()
+    anio_actual = hoy.year
+    labels = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+    valores = [0] * 12
+    
+    # Consulta agrupada por mes
+    res = db.session.query(
+        func.month(Metrica.fecha_generacion),
+        func.count(Metrica.id_metrica)
+    ).filter(func.year(Metrica.fecha_generacion) == anio_actual).group_by(func.month(Metrica.fecha_generacion)).all()
+    
+    for mes, cant in res:
+        if mes is not None:
+            valores[int(mes)-1] = cant
+            
+    return {"labels": labels, "valores": valores}
+
+@main_bp.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    if not current_user.es_admin:
+        flash('Acceso denegado. Se requieren permisos de administrador.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    from sqlalchemy import func
+    import datetime
+    
+    tiempos = db.session.query(
+        func.avg(Metrica.duracion),
+        func.max(Metrica.duracion),
+        func.min(Metrica.duracion)
+    ).filter(Metrica.exitoso == True).first()
+    
+    tiempo_promedio = float(tiempos[0] or 0)
+    tiempo_max = float(tiempos[1] or 0)
+    tiempo_min = float(tiempos[2] or 0)
+    
+    exitos = Metrica.query.filter_by(exitoso=True).count()
+    errores = Metrica.query.filter_by(exitoso=False).count()
+    
+    hoy_dt = datetime.datetime.utcnow()
+    inicio_semana = hoy_dt - datetime.timedelta(days=hoy_dt.weekday())
+    inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
+    modelos_semana = Metrica.query.filter(Metrica.fecha_generacion >= inicio_semana).count()
+    
+    inicio_mes = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    ultimo_dia_mes_ant = inicio_mes - datetime.timedelta(days=1)
+    inicio_mes_ant = ultimo_dia_mes_ant.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    suscritos_mes_actual = Suscripcion.query.filter(Suscripcion.fecha_inicio >= inicio_mes.date()).count()
+    suscritos_mes_anterior = Suscripcion.query.filter(
+        Suscripcion.fecha_inicio >= inicio_mes_ant.date(),
+        Suscripcion.fecha_inicio <= ultimo_dia_mes_ant.date()
+    ).count()
+    
+    inicio_hoy = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    modelos_hoy_query = db.session.query(
+        func.hour(Metrica.fecha_generacion),
+        func.count(Metrica.id_metrica)
+    ).filter(Metrica.fecha_generacion >= inicio_hoy).group_by(func.hour(Metrica.fecha_generacion)).all()
+    
+    labels_hoy = [f"{i:02d}:00" for i in range(24)]
+    valores_hoy = [0] * 24
+    for hora, cant in modelos_hoy_query:
+        if hora is not None:
+            valores_hoy[int(hora)] = cant
+
+    likes = Modelo.query.filter_by(feedback_ia=1).count()
+    dislikes = Modelo.query.filter_by(feedback_ia=-1).count()
+    
+    total_usuarios = Usuario.query.count()
+    total_modelos = Modelo.query.count()
+    usuarios_pro = Suscripcion.query.filter_by(estado='Activa').count()
+
+    dist_tiempos = distribucion_tiempos()
+    datos_semana = get_datos_semana()
+    datos_anuales = get_datos_anuales()
+    
+    # Recomendaciones
+    con_recom = Metrica.query.filter(Metrica.recomendaciones.isnot(None), Metrica.recomendaciones != "").count()
+    sin_recom = Metrica.query.filter((Metrica.recomendaciones == None) | (Metrica.recomendaciones == "")).count()
+
+    return render_template('admin_dashboard.html',
+                           tiempo_promedio=round(tiempo_promedio, 2),
+                           tiempo_max=round(tiempo_max, 2),
+                           tiempo_min=round(tiempo_min, 2),
+                           exitos=exitos,
+                           errores=errores,
+                           modelos_semana=modelos_semana,
+                           suscritos_mes_actual=suscritos_mes_actual,
+                           suscritos_mes_anterior=suscritos_mes_anterior,
+                           labels_hoy=labels_hoy,
+                           valores_hoy=valores_hoy,
+                           likes=likes,
+                           dislikes=dislikes,
+                           total_usuarios=total_usuarios,
+                           total_modelos=total_modelos,
+                           usuarios_pro=usuarios_pro,
+                           dist_labels=dist_tiempos['labels'],
+                           dist_data=dist_tiempos['data'],
+                           labels_semana=datos_semana['labels'],
+                           valores_semana=datos_semana['valores'],
+                           labels_anio=datos_anuales['labels'],
+                           valores_anio=datos_anuales['valores'],
+                           con_recom=con_recom,
+                           sin_recom=sin_recom)
