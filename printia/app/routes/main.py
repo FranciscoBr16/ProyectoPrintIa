@@ -1,11 +1,17 @@
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
+import datetime
+import requests
+import os
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from app import db
 from app.models import Modelo, Metrica, Usuario, Plan, Suscripcion, Valoracion
-from app.utils import guardar_avatar, eliminar_avatar, mejorar_prompt_con_ia
-import time
-import datetime
-import random
+from app.utils import (
+    guardar_avatar, 
+    eliminar_avatar, 
+    mejorar_prompt_con_ia, 
+    generar_recomendaciones_ia
+)
 
 main_bp = Blueprint('main', __name__)
 
@@ -13,14 +19,8 @@ main_bp = Blueprint('main', __name__)
 @login_required
 def dashboard():
     # Estadísticas generales
-    total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
-    
-    # Modelos de este mes
-    primer_dia_mes = datetime.datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    modelos_mes = Modelo.query.filter(
-        Modelo.id_usuario == current_user.id_usuario,
-        Modelo.fecha_creacion >= primer_dia_mes
-    ).count()
+    total_modelos = current_user.total_generados
+    modelos_mes = current_user.generados_mes
     
     # Último modelo para el mini-visor
     ultimo_modelo = Modelo.query.filter_by(id_usuario=current_user.id_usuario).order_by(Modelo.fecha_creacion.desc()).first()
@@ -56,8 +56,7 @@ def generador():
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     
     if not suscripcion:
-        total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
-        if total_modelos >= 1:
+        if current_user.total_generados >= 1:
             flash('Has alcanzado el límite de 1 modelo gratuito. ¡Pásate a PRO para crear hasta 15 por mes!', 'info')
             return redirect(url_for('main.planes'))
     else:
@@ -103,8 +102,7 @@ def generar():
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     
     if not suscripcion:
-        total_modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).count()
-        if total_modelos >= 1:
+        if current_user.total_generados >= 1:
             flash('Límite de créditos alcanzado (1/1). Pásate a PRO para continuar.', 'error')
             return redirect(url_for('main.planes'))
     else:
@@ -113,9 +111,6 @@ def generar():
             flash('Límite de créditos alcanzado (0/15).', 'error')
             return redirect(url_for('main.dashboard'))
     
-    import requests
-    from flask import current_app
-
     api_key = current_app.config.get('MESHY_API_KEY')
     if not api_key:
         flash('Error de configuración: API Key de Meshy no encontrada.', 'error')
@@ -151,7 +146,6 @@ def generar():
         # Los usuarios PRO usarán el análisis visual con Gemini Vision después de la generación
         recomendaciones_html = None
         if not current_user.es_pro:
-            from app.utils import generar_recomendaciones_ia
             recomendaciones_html = generar_recomendaciones_ia(prompt)
         
         nuevo_modelo = Modelo(
@@ -198,9 +192,6 @@ def modelo(id_modelo):
         generando = True
         task_id = modelo_obj.meshy_task_id
         
-        from flask import current_app
-        import requests
-        import os
         api_key = current_app.config.get('MESHY_API_KEY')
         headers = {'Authorization': f'Bearer {api_key}'}
         
@@ -452,7 +443,6 @@ def como_funciona():
 @main_bp.route('/perfil')
 @login_required
 def perfil():
-    from app.models import Suscripcion, Plan
     suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario, estado='Activa').first()
     plan_nombre = 'GRATIS'
     if suscripcion:
@@ -546,11 +536,7 @@ def checkout():
             suscripcion.metodo_pago = 'Tarjeta'
             suscripcion.modelos_restantes = plan_pro.limite_exportaciones_mensual
         else:
-            # Generamos el ID manualmente por si la tabla no tiene AUTO_INCREMENT
-            max_id = db.session.query(db.func.max(Suscripcion.id_suscripcion)).scalar() or 0
-            
             nueva_suscripcion = Suscripcion(
-                id_suscripcion=max_id + 1,
                 id_plan=plan_pro.id_plan,
                 id_usuario=current_user.id_usuario,
                 fecha_inicio=hoy,
@@ -569,7 +555,6 @@ def checkout():
     return render_template('checkout.html')
 
 def distribucion_tiempos():
-    from app.models import Metrica
     rangos = [
         {"label": "< 20s", "min": 0, "max": 20},
         {"label": "20-30s", "min": 20, "max": 30},
@@ -591,9 +576,6 @@ def distribucion_tiempos():
     return {"labels": [r['label'] for r in rangos], "data": resultados}
 
 def get_datos_semana():
-    from app.models import Metrica
-    from sqlalchemy import func
-    import datetime
     hoy = datetime.datetime.utcnow().date()
     labels = []
     valores = []
@@ -605,9 +587,6 @@ def get_datos_semana():
     return {"labels": labels, "valores": valores}
 
 def get_datos_anuales():
-    from app.models import Metrica
-    from sqlalchemy import func
-    import datetime
     hoy = datetime.datetime.utcnow()
     anio_actual = hoy.year
     labels = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
@@ -631,9 +610,6 @@ def admin_dashboard():
     if not current_user.es_admin:
         flash('Acceso denegado. Se requieren permisos de administrador.', 'error')
         return redirect(url_for('main.dashboard'))
-    
-    from sqlalchemy import func
-    import datetime
     
     tiempos = db.session.query(
         func.avg(Metrica.duracion),

@@ -1,4 +1,5 @@
-from datetime import datetime
+import datetime
+from flask import url_for
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
@@ -10,7 +11,7 @@ class Usuario(UserMixin, db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     clave = db.Column(db.String(255), nullable=False)
     nombre_usuario = db.Column(db.String(50), nullable=False)
-    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
     es_admin = db.Column(db.Boolean, default=False, nullable=False)
     imagen = db.Column(db.String(255), nullable=True)
     
@@ -27,7 +28,6 @@ class Usuario(UserMixin, db.Model):
     @property
     def generados_mes(self):
         from app.models import Modelo
-        import datetime
         primer_dia_mes = datetime.datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         return Modelo.query.filter(
             Modelo.id_usuario == self.id_usuario,
@@ -50,7 +50,6 @@ class Usuario(UserMixin, db.Model):
 
     def avatar_url(self):
         if self.imagen:
-            from flask import url_for
             return url_for('static', filename=f'uploads/avatars/{self.imagen}')
         return None
 
@@ -64,8 +63,8 @@ class Modelo(db.Model):
     archivo_url = db.Column(db.String(255), nullable=True)
     imagen_url = db.Column(db.String(255), nullable=True)
     es_publico = db.Column(db.Boolean, default=False, nullable=False)
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
+    fecha_actualizacion = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     meshy_task_id = db.Column(db.String(255), nullable=True) # ID de la tarea en Meshy para edición/rigging
     feedback_ia = db.Column(db.Integer, default=0, nullable=True) # 0: sin feedback, 1: aprobado, -1: desaprobado
     
@@ -86,7 +85,7 @@ class Metrica(db.Model):
     duracion = db.Column(db.Numeric(8, 2), nullable=True)
     detalle_error = db.Column(db.String(255), nullable=True)
     exitoso = db.Column(db.Boolean, nullable=True)
-    fecha_generacion = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_generacion = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     recomendaciones = db.Column(db.Text, nullable=True)
 
 class Plan(db.Model):
@@ -119,7 +118,7 @@ class Valoracion(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id_usuario', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
     puntuacion = db.Column(db.Integer, nullable=False)
     comentario = db.Column(db.String(255), nullable=True)
-    fecha = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
 
 @login_manager.user_loader
 def load_user(user_id):

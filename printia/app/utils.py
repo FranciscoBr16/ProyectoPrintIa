@@ -1,5 +1,8 @@
 import os
 import uuid
+import requests
+import re
+import base64
 from werkzeug.utils import secure_filename
 from flask import current_app
 
@@ -57,7 +60,6 @@ def generar_recomendaciones_ia(prompt_modelo):
     Llama a la API de HuggingFace para generar recomendaciones de impresión 3D
     basadas en el nombre/prompt del modelo.
     """
-    import requests
     hf_token = os.getenv('HF_TOKEN')
     if not hf_token:
         print("Error: HF_TOKEN no configurado.")
@@ -102,7 +104,6 @@ def generar_recomendaciones_ia(prompt_modelo):
                     line_lower = line.lower()
                     if "<li>" in line_lower:
                         # Extraer solo el contenido dentro de <li> si hay basura alrededor
-                        import re
                         match = re.search(r"<li>(.*?)</li>", line, re.IGNORECASE)
                         if match:
                             html_recs += f"<li>{match.group(1)}</li>\n"
@@ -126,19 +127,6 @@ def generar_recomendaciones_ia(prompt_modelo):
 
 
 def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
-    """
-    Usa Gemini Vision API para analizar la imagen thumbnail del modelo 3D
-    y generar recomendaciones de impresión profundas basadas en el análisis visual.
-    
-    Args:
-        ruta_imagen: Ruta absoluta al archivo de imagen (thumb) del modelo.
-        prompt_modelo: Prompt/descripción original del modelo (contexto adicional).
-    
-    Returns:
-        str: HTML con las recomendaciones (<li> items) o None si falla.
-    """
-    import requests
-    import base64
 
     gemini_key = os.getenv('GEMINI_API_KEY')
     if not gemini_key:
@@ -228,7 +216,6 @@ def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
             )
 
             if texto_generado:
-                import re
                 # Extraer todos los <li>...</li>
                 items = re.findall(r'<li>(.*?)</li>', texto_generado, re.IGNORECASE | re.DOTALL)
                 if items:
@@ -308,7 +295,6 @@ def mejorar_prompt_con_ia(prompt_usuario):
 
     user_message = f"User description (may be in Spanish): \"{prompt_usuario}\""
 
-    import requests as req
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     headers = {"Content-Type": "application/json"}
     params = {"key": gemini_key}
@@ -330,7 +316,7 @@ def mejorar_prompt_con_ia(prompt_usuario):
     }
 
     try:
-        response = req.post(url, headers=headers, params=params, json=payload, timeout=15)
+        response = requests.post(url, headers=headers, params=params, json=payload, timeout=15)
         if response.status_code == 200:
             data = response.json()
             prompt_mejorado = (
