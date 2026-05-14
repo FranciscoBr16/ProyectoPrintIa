@@ -87,6 +87,7 @@ class Metrica(db.Model):
     exitoso = db.Column(db.Boolean, nullable=True)
     fecha_generacion = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     recomendaciones = db.Column(db.Text, nullable=True)
+    total_descargas = db.Column(db.Integer, default=0)
 
 class Plan(db.Model):
     __tablename__ = 'planes'

@@ -1,7 +1,7 @@
 import datetime
 import requests
 import os
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app, send_from_directory
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app import db
@@ -424,6 +424,35 @@ def eliminar_modelo(id_modelo):
     flash('Modelo eliminado correctamente.', 'success')
     return redirect(url_for('main.galeria'))
 
+@main_bp.route('/modelo/<int:id_modelo>/descargar')
+@login_required
+def descargar_modelo(id_modelo):
+    modelo_obj = Modelo.query.get_or_404(id_modelo)
+    
+    # Solo el dueño o modelos públicos pueden descargarse
+    if not modelo_obj.es_publico and modelo_obj.id_usuario != current_user.id_usuario:
+        flash('No tienes permiso para descargar este modelo.', 'error')
+        return redirect(url_for('main.galeria'))
+    
+    if not modelo_obj.archivo_url:
+        flash('El modelo no tiene un archivo asociado.', 'error')
+        return redirect(url_for('main.modelo', id_modelo=id_modelo))
+    
+    # Incrementar contador de descargas en la métrica más reciente
+    metrica = Metrica.query.filter_by(id_modelo=id_modelo).order_by(Metrica.fecha_generacion.desc()).first()
+    if metrica:
+        if metrica.total_descargas is None:
+            metrica.total_descargas = 0
+        metrica.total_descargas += 1
+        db.session.commit()
+    
+    return send_from_directory(
+        current_app.config['UPLOAD_FOLDER_MODELOS'],
+        modelo_obj.archivo_url,
+        as_attachment=True,
+        download_name=f"{modelo_obj.titulo.replace(' ', '_')}.stl"
+    )
+
 
 @main_bp.route('/planes')
 def planes():
@@ -624,6 +653,9 @@ def admin_dashboard():
     exitos = Metrica.query.filter_by(exitoso=True).count()
     errores = Metrica.query.filter_by(exitoso=False).count()
     
+    # Total de descargas
+    total_descargas = db.session.query(func.sum(Metrica.total_descargas)).scalar() or 0
+    
     hoy_dt = datetime.datetime.utcnow()
     inicio_semana = hoy_dt - datetime.timedelta(days=hoy_dt.weekday())
     inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -689,4 +721,5 @@ def admin_dashboard():
                            labels_anio=datos_anuales['labels'],
                            valores_anio=datos_anuales['valores'],
                            con_recom=con_recom,
+                           total_descargas=total_descargas,
                            sin_recom=sin_recom)

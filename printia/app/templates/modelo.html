@@ -204,7 +204,7 @@
         {% endif %}
         
         {% if modelo.archivo_url and not generando and not error_generacion %}
-            <a href="{{ url_for('static', filename='uploads/modelos/' + modelo.archivo_url) }}" download="{{ modelo.titulo | replace(' ', '_') }}.stl" class="btn btn--primary btn--large" style="text-decoration: none; display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">Descargar STL</a>
+            <a href="{{ url_for('main.descargar_modelo', id_modelo=modelo.id_modelo) }}" class="btn btn--primary btn--large" style="text-decoration: none; display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">Descargar STL</a>
         {% else %}
             <button class="btn btn--primary btn--large" disabled style="width: 100%; box-sizing: border-box;">Descargar STL</button>
         {% endif %}
