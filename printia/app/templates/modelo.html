@@ -106,24 +106,20 @@
 
     <div class="visor-info-panel" style="justify-content: center; text-align: center; flex-direction: column; align-items: center;">
         <div class="visor-column" style="width: 100%; max-width: 600px;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                <h3 class="visor-subtitle" style="margin: 0;">Recomendaciones de Impresión</h3>
-                {% set metrica_recs = (modelo.metricas | selectattr('recomendaciones', 'ne', none) | list | first) if modelo.metricas else none %}
-            </div>
+            {% set metrica_recs = (modelo.metricas | selectattr('recomendaciones', 'ne', none) | list | first) if modelo.metricas else none %}
+            {% set tiene_recomendaciones = metrica_recs and metrica_recs.recomendaciones %}
 
-            <ul class="visor-recs" id="recs-list" style="display: inline-block; text-align: left;">
-                {% if metrica_recs and metrica_recs.recomendaciones %}
+            {% if tiene_recomendaciones %}
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <h3 class="visor-subtitle" style="margin: 0;">Recomendaciones de Impresión</h3>
+                </div>
+
+                <ul class="visor-recs" id="recs-list" style="display: inline-block; text-align: left;">
                     {{ metrica_recs.recomendaciones | safe }}
-                {% else %}
-                    <li>Mantener escala al 100%</li>
-                    <li>Material de Impresión: PLA</li>
-                    <li>Relleno: 15% - 20%</li>
-                    <li>Soporte: Según geometría</li>
-                {% endif %}
-            </ul>
+                </ul>
+            {% endif %}
 
             <!-- Botón PRO: Generar recomendaciones avanzadas con análisis visual -->
-            {% set tiene_recomendaciones = metrica_recs and metrica_recs.recomendaciones %}
             {% if current_user.id_usuario == modelo.id_usuario and es_pro and modelo.archivo_url and not generando and not error_generacion and not tiene_recomendaciones %}
             <div id="pro-recs-section" style="margin-top: 20px; width: 100%;">
                 <button id="btn-generar-recs-pro" onclick="generarRecomendacionesPro()" 

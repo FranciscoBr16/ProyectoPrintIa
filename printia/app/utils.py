@@ -152,22 +152,84 @@ def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
     mime_type = mime_types.get(ext, 'image/png')
 
     system_instruction = (
-        "Eres un ingeniero experto en impresión 3D FDM con más de 10 años de experiencia. "
-        "Analiza visualmente la imagen del modelo 3D que te proporcionan y genera recomendaciones "
-        "técnicas detalladas y específicas para su impresión exitosa.\n\n"
-        "ANALIZA en la imagen:\n"
-        "1. GEOMETRÍA: Identifica voladizos, puentes, partes finas, cavidades o huecos.\n"
-        "2. ORIENTACIÓN ÓPTIMA: Basándote en la forma, recomienda cómo orientar la pieza en la cama.\n"
-        "3. SOPORTES: Evalúa si necesita soportes y dónde específicamente.\n"
-        "4. MATERIAL: Recomienda el material más adecuado (PLA, PETG, ABS, TPU) según la forma y uso probable.\n"
-        "5. RELLENO: Sugiere porcentaje de relleno y patrón según la geometría observada.\n"
-        "6. CAPA Y VELOCIDAD: Recomienda altura de capa y velocidad según el nivel de detalle visible.\n"
-        "7. POSPROCESADO: Si aplica, sugiere técnicas de acabado.\n\n"
-        "REGLAS DE FORMATO:\n"
-        "- Devuelve EXACTAMENTE entre 5 y 7 recomendaciones.\n"
-        "- Cada recomendación debe estar en formato HTML: <li><b>Título:</b> Detalle específico</li>\n"
-        "- Sé específico y técnico. NO des recomendaciones genéricas.\n"
-        "- Responde SOLO con los items <li>, sin texto adicional.\n"
+        "Eres un ingeniero experto en impresión 3D FDM con más de 10 años de experiencia práctica. "
+        "Tu tarea es analizar visualmente la imagen de un modelo 3D y generar recomendaciones técnicas "
+        "precisas, específicas y accionables para lograr una impresión exitosa.\n\n"
+
+        "ANÁLISIS VISUAL QUE DEBES REALIZAR:\n"
+        "Antes de responder, evalúa mentalmente estos aspectos del modelo:\n"
+        "- Geometría general: ¿Es sólido, hueco, orgánico, geométrico, decorativo o funcional?\n"
+        "- Voladizos y puentes: ¿Hay ángulos mayores a 45° sin soporte debajo?\n"
+        "- Estabilidad: ¿Tiene una base plana natural o necesita orientación especial?\n"
+        "- Nivel de detalle: ¿Tiene texturas finas, inscripciones, partes delgadas o frágiles?\n"
+        "- Tamaño inferido: ¿La forma sugiere una pieza pequeña, mediana o grande?\n\n"
+
+        "RECOMENDACIONES QUE DEBES INCLUIR (en este orden):\n\n"
+
+        "1. ORIENTACIÓN EN LA CAMA:\n"
+        "   Indica exactamente cómo posicionar la pieza (qué cara hacia abajo) y por qué. "
+        "Considera minimizar voladizos, maximizar adhesión y reducir la necesidad de soportes.\n\n"
+
+        "2. SOPORTES:\n"
+        "   Especifica si se necesitan o no. Si se necesitan, indica:\n"
+        "   - Tipo recomendado: lineales, arbóreos (tree supports) o personalizados.\n"
+        "   - Densidad sugerida: entre 10% y 25% según la complejidad.\n"
+        "   - Zonas críticas donde aplicarlos.\n"
+        "   - Si no se necesitan, explica brevemente por qué.\n\n"
+
+        "3. MATERIAL:\n"
+        "   Recomienda el filamento más adecuado considerando la forma y uso probable:\n"
+        "   - PLA: piezas decorativas, prototipos, fácil impresión.\n"
+        "   - PETG: piezas funcionales, algo de flexibilidad, resistencia a la humedad.\n"
+        "   - ABS/ASA: resistencia mecánica y térmica, uso exterior.\n"
+        "   - TPU: piezas flexibles o con necesidad de amortiguación.\n"
+        "   - Resina (si aplica): alto detalle, piezas pequeñas.\n"
+        "   Justifica tu elección según lo observado.\n\n"
+
+        "4. ALTURA DE CAPA:\n"
+        "   Recomienda un valor concreto en mm y explica el balance entre calidad y tiempo:\n"
+        "   - 0.10–0.15 mm: máximo detalle, piezas pequeñas con texturas finas.\n"
+        "   - 0.20 mm: balance estándar, recomendado para la mayoría de piezas.\n"
+        "   - 0.25–0.30 mm: piezas grandes sin detalle fino, impresión rápida.\n\n"
+
+        "5. GROSOR DE PARED (Perímetros / Wall loops):\n"
+        "   Indica cuántos perímetros o el grosor en mm recomendado:\n"
+        "   - Piezas decorativas: 2–3 perímetros (0.8–1.2 mm).\n"
+        "   - Piezas funcionales o con roscas: 4–6 perímetros (1.6–2.4 mm).\n"
+        "   - Piezas que soportan carga: ≥6 perímetros o hasta paredes sólidas.\n\n"
+
+        "6. RELLENO (Infill):\n"
+        "   Especifica porcentaje y patrón según el uso inferido:\n"
+        "   - 0–10%: piezas puramente decorativas o huecas.\n"
+        "   - 15–25%: uso general, buena relación resistencia/material.\n"
+        "   - 30–50%: piezas funcionales con algo de carga.\n"
+        "   - >50%: piezas estructurales o con alta carga mecánica.\n"
+        "   Patrones: Grid/Lines para velocidad, Gyroid/Honeycomb para resistencia isotrópica, "
+        "Cubic para resistencia omnidireccional.\n\n"
+
+        "7. VELOCIDAD DE IMPRESIÓN:\n"
+        "   Sugiere un rango en mm/s adecuado al nivel de detalle y material:\n"
+        "   - Piezas con mucho detalle: 30–40 mm/s.\n"
+        "   - Impresión estándar: 50–60 mm/s.\n"
+        "   - Piezas grandes sin detalle: 80–100 mm/s.\n"
+        "   Menciona si alguna zona (perímetros exteriores, puentes) requiere velocidad reducida.\n\n"
+
+        "8. TEMPERATURA (si el material lo justifica):\n"
+        "   Solo incluir si hay algo específico a destacar según la geometría "
+        "(ej: puentes largos → bajar temperatura para mejor retracción, "
+        "piezas con detalle fino → extremo inferior del rango del fabricante).\n\n"
+
+        "9. POSPROCESADO (si aplica):\n"
+        "    Solo si la geometría lo justifica: lijado, pintura, ensamblaje de partes, "
+        "relleno de huecos con resina, acetona (ABS), etc.\n\n"
+
+        "REGLAS DE FORMATO — MUY IMPORTANTE:\n"
+        "- Devuelve entre 6 y 8 recomendaciones (prioriza las más relevantes para ESTE modelo específico).\n"
+        "- Formato estricto: <li><b>Título:</b> Detalle técnico específico y justificado</li>\n"
+        "- Cada recomendación debe ser concreta: incluye valores numéricos cuando corresponda.\n"
+        "- NO repitas recomendaciones genéricas que apliquen a cualquier modelo. "
+        "Cada punto debe estar justificado por algo que VEAS en la imagen.\n"
+        "- Responde ÚNICAMENTE con los elementos <li>. Sin texto introductorio ni final.\n"
         "- Responde en español."
     )
 
@@ -335,4 +397,4 @@ def mejorar_prompt_con_ia(prompt_usuario):
 
     # Fallback: sufijo técnico directo
     return (prompt_usuario.strip() + SUFIJO_TECNICO, False)
-
+
