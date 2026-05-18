@@ -1,6 +1,7 @@
 import datetime
 import requests
 import os
+import mercadopago
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app, send_from_directory
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -536,52 +537,148 @@ def editar_perfil():
         
     return render_template('editar_perfil.html')
 
-@main_bp.route('/checkout', methods=['GET', 'POST'])
+@main_bp.route('/checkout', methods=['GET'])
 @login_required
 def checkout():
-    if request.method == 'POST':
-        # Buscamos o creamos el plan PRO
-        plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
-        if not plan_pro:
-            plan_pro = Plan(nombre_plan='PRO', limite_exportaciones_mensual=15, precio=10.00)
-            db.session.add(plan_pro)
-            db.session.commit()
-        else:
-            # Asegurar que el precio y límite estén actualizados si ya existía
-            plan_pro.precio = 10.00
-            plan_pro.limite_exportaciones_mensual = 15
-            db.session.commit()
-            
-        # Actualizamos o creamos la suscripción del usuario
-        suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario).first()
-        hoy = datetime.date.today()
-        vencimiento = hoy + datetime.timedelta(days=30)
+    # Inicializar el SDK de Mercado Pago
+    sdk = mercadopago.SDK(current_app.config['MERCADOPAGO_ACCESS_TOKEN'])
+    
+    # Construir URLs absolutas manualmente para evitar problemas con url_for local
+    base_url = request.url_root.rstrip('/')
+    
+    # URL pública de ngrok (para recibir el webhook)
+    ngrok_url = current_app.config.get('NGROK_URL')
+    if ngrok_url and ngrok_url.endswith('/'):
+        ngrok_url = ngrok_url[:-1]
         
-        if suscripcion:
-            suscripcion.id_plan = plan_pro.id_plan
-            suscripcion.fecha_inicio = hoy
-            suscripcion.fecha_fin = vencimiento
-            suscripcion.estado = 'Activa'
-            suscripcion.metodo_pago = 'Tarjeta'
-            suscripcion.modelos_restantes = plan_pro.limite_exportaciones_mensual
-        else:
-            nueva_suscripcion = Suscripcion(
-                id_plan=plan_pro.id_plan,
-                id_usuario=current_user.id_usuario,
-                fecha_inicio=hoy,
-                fecha_fin=vencimiento,
-                estado='Activa',
-                metodo_pago='Tarjeta',
-                modelos_restantes=plan_pro.limite_exportaciones_mensual
-            )
-            db.session.add(nueva_suscripcion)
-            
-        db.session.commit()
+    # Crear los datos de la preferencia
+    preference_data = {
+        "items": [
+            {
+                "id": "printia_pro",
+                "title": "Suscripción PRO PrintIA (1 Mes)",
+                "quantity": 1,
+                "unit_price": 1000.0,  # 1000 moneda local (ej. ARS)
+                "currency_id": "ARS"
+            }
+        ],
+        "back_urls": {
+            "success": f"{base_url}/checkout/success",
+            "failure": f"{base_url}/checkout/failure",
+            "pending": f"{base_url}/checkout/pending"
+        },
+        "external_reference": str(current_user.id_usuario),
+        "statement_descriptor": "PRINTIA PRO"
+    }
+    
+    if ngrok_url and ngrok_url != "https://REEMPLAZAR-CON-TU-URL.ngrok-free.app":
+        preference_data["notification_url"] = f"{ngrok_url}/webhook-mercadopago"
+
+    try:
+        preference_response = sdk.preference().create(preference_data)
         
-        flash('¡Pago exitoso! Ahora eres usuario PRO.', 'success')
+        if preference_response.get("status") not in (200, 201):
+            error_msg = preference_response.get('response', 'Error desconocido de MP')
+            raise Exception(f"API Error: {error_msg}")
+            
+        preference = preference_response["response"]
+        
+        # Como estamos usando el Token de una Cuenta de Prueba, 
+        # debemos usar el init_point normal (MP ya sabe que es falso)
+        init_point = preference.get("init_point")
+        if not init_point:
+            raise Exception("No se recibió ningún init_point válido.")
+        
+        return render_template('checkout.html', init_point=init_point, preference_id=preference.get("id"))
+    except Exception as e:
+        print(f"Error creando preferencia de Mercado Pago: {e}")
+        flash(f'Error MP: {str(e)}', 'error')
         return redirect(url_for('main.planes'))
-        
-    return render_template('checkout.html')
+
+@main_bp.route('/checkout/success')
+@login_required
+def checkout_success():
+    # Ya no actualizamos la base de datos aquí, eso lo hace el Webhook.
+    # Solo le damos un mensaje amable al usuario.
+    flash('¡Pago procesado en Mercado Pago! Si fue aprobado, tu cuenta se actualizará a PRO en breves instantes.', 'success')
+    return redirect(url_for('main.planes'))
+
+@main_bp.route('/checkout/failure')
+@login_required
+def checkout_failure():
+    flash('El pago fue rechazado. Intenta con otro medio de pago o revisa el saldo de tu tarjeta.', 'error')
+    return redirect(url_for('main.checkout'))
+
+@main_bp.route('/checkout/pending')
+@login_required
+def checkout_pending():
+    flash('El pago está pendiente de aprobación por Mercado Pago. Te notificaremos pronto.', 'info')
+    return redirect(url_for('main.checkout'))
+
+@main_bp.route('/webhook-mercadopago', methods=['POST'])
+def webhook_mercadopago():
+    """
+    Ruta que Mercado Pago llama cuando hay una actualización en el pago.
+    """
+    # Mercado Pago puede mandar info por query params (topic/id) o JSON
+    data = request.json
+    action = data.get("action")
+    
+    if action == "payment.created" or data.get("type") == "payment":
+        payment_id = data.get("data", {}).get("id")
+        if payment_id:
+            try:
+                sdk = mercadopago.SDK(current_app.config['MERCADOPAGO_ACCESS_TOKEN'])
+                payment_response = sdk.payment().get(payment_id)
+                payment_info = payment_response.get("response", {})
+                
+                # Si el pago fue aprobado, buscamos a qué usuario pertenece
+                if payment_info.get("status") == "approved":
+                    user_id = payment_info.get("external_reference")
+                    
+                    if user_id:
+                        # Buscamos o creamos el plan PRO
+                        plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
+                        if not plan_pro:
+                            plan_pro = Plan(nombre_plan='PRO', limite_exportaciones_mensual=15, precio=10.00)
+                            db.session.add(plan_pro)
+                            db.session.commit()
+                        else:
+                            plan_pro.precio = 10.00
+                            plan_pro.limite_exportaciones_mensual = 15
+                            db.session.commit()
+                            
+                        # Actualizamos la suscripción del usuario
+                        suscripcion = Suscripcion.query.filter_by(id_usuario=int(user_id)).first()
+                        hoy = datetime.date.today()
+                        vencimiento = hoy + datetime.timedelta(days=30)
+                        
+                        if suscripcion:
+                            suscripcion.id_plan = plan_pro.id_plan
+                            suscripcion.fecha_inicio = hoy
+                            suscripcion.fecha_fin = vencimiento
+                            suscripcion.estado = 'Activa'
+                            suscripcion.metodo_pago = 'Mercado Pago'
+                            suscripcion.modelos_restantes = plan_pro.limite_exportaciones_mensual
+                        else:
+                            nueva_suscripcion = Suscripcion(
+                                id_plan=plan_pro.id_plan,
+                                id_usuario=int(user_id),
+                                fecha_inicio=hoy,
+                                fecha_fin=vencimiento,
+                                estado='Activa',
+                                metodo_pago='Mercado Pago',
+                                modelos_restantes=plan_pro.limite_exportaciones_mensual
+                            )
+                            db.session.add(nueva_suscripcion)
+                            
+                        db.session.commit()
+                        print(f"WEBHOOK: Usuario {user_id} actualizado a PRO exitosamente.")
+            except Exception as e:
+                print(f"WEBHOOK ERROR: {e}")
+                
+    # Siempre debemos responder 200 OK a Mercado Pago para que sepan que recibimos la notificación
+    return jsonify({"status": "ok"}), 200
 
 def distribucion_tiempos():
     rangos = [
