@@ -545,11 +545,6 @@ def checkout():
     
     # Construir URLs absolutas manualmente para evitar problemas con url_for local
     base_url = request.url_root.rstrip('/')
-    
-    # URL pública de ngrok (para recibir el webhook)
-    ngrok_url = current_app.config.get('NGROK_URL')
-    if ngrok_url and ngrok_url.endswith('/'):
-        ngrok_url = ngrok_url[:-1]
         
     # Crear los datos de la preferencia
     preference_data = {
@@ -570,9 +565,6 @@ def checkout():
         "external_reference": str(current_user.id_usuario),
         "statement_descriptor": "PRINTIA PRO"
     }
-    
-    if ngrok_url and ngrok_url != "https://REEMPLAZAR-CON-TU-URL.ngrok-free.app":
-        preference_data["notification_url"] = f"{ngrok_url}/webhook-mercadopago"
 
     try:
         preference_response = sdk.preference().create(preference_data)

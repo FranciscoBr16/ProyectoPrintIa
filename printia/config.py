@@ -8,7 +8,6 @@ class Config:
     MESHY_API_KEY = os.getenv('MESHY_API_KEY')
     MERCADOPAGO_ACCESS_TOKEN = os.getenv('MERCADOPAGO_ACCESS_TOKEN')
     MERCADOPAGO_PUBLIC_KEY = os.getenv('MERCADOPAGO_PUBLIC_KEY')
-    NGROK_URL = os.getenv('NGROK_URL')
     
     SQLALCHEMY_DATABASE_URI = (
         f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
