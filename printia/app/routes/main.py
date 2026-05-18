@@ -543,8 +543,20 @@ def checkout():
     # Inicializar el SDK de Mercado Pago
     sdk = mercadopago.SDK(current_app.config['MERCADOPAGO_ACCESS_TOKEN'])
     
-    # Construir URLs absolutas manualmente para evitar problemas con url_for local
-    base_url = request.url_root.rstrip('/')
+    import urllib.parse
+    
+    # Construir URLs absolutas con url_for
+    success_url = url_for('main.checkout_success', _external=True)
+    failure_url = url_for('main.checkout_failure', _external=True)
+    pending_url = url_for('main.checkout_pending', _external=True)
+    
+    # HACK LOCAL: Si estamos en localhost/127.0.0.1, Mercado Pago rechaza el auto_return
+    # y oculta el botón de "Volver al sitio". Para evitarlo, usamos httpbin para hacer
+    # un bypass seguro que redirija de vuelta a nuestro localhost.
+    if success_url.startswith('http://127.0.0.1') or success_url.startswith('http://localhost'):
+        success_url = f"https://httpbin.org/redirect-to?url={urllib.parse.quote(success_url)}"
+        failure_url = f"https://httpbin.org/redirect-to?url={urllib.parse.quote(failure_url)}"
+        pending_url = f"https://httpbin.org/redirect-to?url={urllib.parse.quote(pending_url)}"
         
     # Crear los datos de la preferencia
     preference_data = {
@@ -558,9 +570,9 @@ def checkout():
             }
         ],
         "back_urls": {
-            "success": f"{base_url}/checkout/success",
-            "failure": f"{base_url}/checkout/failure",
-            "pending": f"{base_url}/checkout/pending"
+            "success": success_url,
+            "failure": failure_url,
+            "pending": pending_url
         },
         "auto_return": "approved",
         "external_reference": str(current_user.id_usuario),
@@ -594,7 +606,7 @@ def checkout_success():
     # Ya no actualizamos la base de datos aquí, eso lo hace el Webhook.
     # Solo le damos un mensaje amable al usuario.
     flash('¡Pago procesado en Mercado Pago! Si fue aprobado, tu cuenta se actualizará a PRO en breves instantes.', 'success')
-    return redirect(url_for('main.planes'))
+    return redirect(url_for('main.dashboard'))
 
 @main_bp.route('/checkout/failure')
 @login_required
