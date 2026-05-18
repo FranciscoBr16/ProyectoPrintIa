@@ -562,6 +562,7 @@ def checkout():
             "failure": f"{base_url}/checkout/failure",
             "pending": f"{base_url}/checkout/pending"
         },
+        "auto_return": "approved",
         "external_reference": str(current_user.id_usuario),
         "statement_descriptor": "PRINTIA PRO"
     }
