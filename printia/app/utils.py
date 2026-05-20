@@ -325,34 +325,36 @@ def mejorar_prompt_con_ia(prompt_usuario):
         return (prompt_usuario.strip() + SUFIJO_TECNICO, False)
 
     system_instruction = (
-        "You are an expert in 3D modeling and FDM 3D printing. "
-        "Your task is to rewrite a user's description into a precise, technical English prompt "
-        "for Meshy AI text-to-3D generation, optimized for FDM printability. "
+        "You are an expert in 3D modeling, text-to-3D AI generation (like Meshy), and FDM 3D printing. "
+        "Your task is to take a short user description and expand it into a HIGHLY DETAILED, extremely descriptive, "
+        "and precise English prompt optimized for Meshy AI text-to-3D generation and FDM printability.\n\n"
 
-        "STEP 1 - UNDERSTAND THE OBJECT'S PURPOSE: "
-        "Before writing the prompt, identify what the object IS and what it needs to DO. "
-        "If the object is a container, holder, vase, cup, bowl, organizer, or any vessel meant to hold things, "
-        "it MUST have an open hollow interior cavity. Describe this cavity explicitly in the prompt "
-        "(e.g. 'hollow interior', 'open top cavity', 'cylindrical hollow body'). "
-        "Never fill in a functional cavity - that would destroy the object's purpose. "
+        "STEP 1 - STRICT ADHERENCE TO USER INTENT (CRITICAL):\n"
+        "1. NO UNREQUESTED OBJECTS: Focus 100% on the user's core request. DO NOT hallucinate extra props, scenery, backgrounds, humans, hands, or environments. If the user asks for a sword, generate ONLY the sword, not a warrior holding it. If the user asks for a hat, generate ONLY the hat, not a head wearing it.\n"
+        "2. MAINTAIN IDENTITY: You can expand the visual style and textures, but NEVER change the core function or fundamental identity of the object.\n"
+        "3. FRONT-LOAD SUBJECT: The very first sentence of your prompt MUST clearly declare the exact main object being modeled.\n\n"
 
-        "STEP 2 - APPLY FDM PRINTABILITY RULES: "
-        "1. NO FLOATING PARTS: every structural element must be physically fused to the main body. "
-        "Separate pieces that float in mid-air or connect at a single thin point must be avoided. "
-        "Attachments like loops or rings should be integrated as through-holes carved into the body. "
-        "2. NATURAL STABILITY: the model must be able to stand on its own geometry on the print bed. "
-        "Use the object's natural form to achieve this (e.g. a sitting dog rests on its haunches and tail, "
-        "a vase rests on its base, a figure stands on its feet). "
-        "Do NOT add a separate circular pedestal, display base, or platform unless the user explicitly requested one "
-        "or the object has absolutely no natural flat contact area. "
-        "If a minimal base is truly needed, describe it as a subtle integrated extension of the object itself, "
-        "not as a generic disc. "
-        "3. SELF-SUPPORTING GEOMETRY: avoid overhangs steeper than 45 degrees where possible. "
-        "4. UNIFIED MANIFOLD MESH: describe one coherent watertight object, not an assembly of separate parts. "
-        "5. PRINTABLE DETAILS: avoid extremely thin walls or fragile protrusions that would break when printed. "
-        "6. STATIC STABLE POSE: for figures or characters, use a grounded, stable, static pose. "
+        "STEP 2 - EXTREME DETAIL EXPANSION (VISUALS & STYLE):\n"
+        "Expand the user's idea into a rich, vivid paragraph. Describe the exact shape, physical structure, surface texture, "
+        "style (e.g., realistic, low-poly, sci-fi, fantasy, cartoon), and specific features. "
+        "Include power keywords for 3D generation like: 'highly detailed', 'intricate design', 'masterpiece', "
+        "'professional 3D model', 'clear defined geometry', 'sharp details'. "
+        "Leave no visual detail to the imagination. The more descriptive you are about the geometry, the better Meshy will perform.\n\n"
 
-        "Respond with ONLY the improved prompt text. No explanations, no quotes, no extra text."
+        "STEP 3 - UNDERSTAND THE OBJECT'S PURPOSE:\n"
+        "1. HOLDERS & CONTAINERS (CRITICAL): If the object is meant to hold things (pen holder, vase, cup, bowl, pot), it MUST be shaped like a thick-walled container. You MUST explicitly describe it with strong phrases like 'a very deep, wide, empty cylindrical hole carved perfectly into the top center, extending downwards to form a cup-like hollow interior for holding items'. If you just say 'a castle', the AI will make a solid castle. You must explicitly say 'a thick-walled cup/container shaped like a castle on the outside'. NEVER describe the top as flat or closed. The empty cavity is the most important feature.\n"
+        "2. STANDS & MOUNTS (CRITICAL): If the object is a stand, mount, or holder for a device (like a phone stand), DO NOT generate the device itself! Describe ONLY the stand. To prevent AI from generating disconnected floating arms, you MUST describe stands as a 'single solid monolithic block', 'wedge shape', or 'thick unibody pyramid structure' with a groove or resting slot carved into it. Do not describe thin backrests or separate legs.\n\n"
+
+        "STEP 4 - APPLY STRICT FDM PRINTABILITY RULES:\n"
+        "1. NO FLOATING PARTS: Every element must be physically fused. No disconnected pieces.\n"
+        "2. NATURAL STABILITY: The model must stand on its own geometry with a flat, stable bottom/base.\n"
+        "3. SELF-SUPPORTING: Avoid severe overhangs; slope angles upwards.\n"
+        "4. UNIFIED MANIFOLD MESH: One single coherent solid object.\n"
+        "5. THICK & STURDY: No paper-thin walls or fragile, spindly protrusions.\n"
+        "6. STATIC POSE: Characters/creatures must be in a grounded, stable, static pose.\n\n"
+
+        "Combine the adherence rules, extreme visual detail, and structural rules into a single, cohesive, highly descriptive English prompt. "
+        "Respond with ONLY the improved prompt text. No explanations, no quotes, no conversational filler."
     )
 
     user_message = f"User description (may be in Spanish): \"{prompt_usuario}\""
@@ -371,8 +373,8 @@ def mejorar_prompt_con_ia(prompt_usuario):
             }
         ],
         "generationConfig": {
-            "temperature": 0.4,
-            "maxOutputTokens": 200,
+            "temperature": 0.6,
+            "maxOutputTokens": 400,
             "topP": 0.9
         }
     }
