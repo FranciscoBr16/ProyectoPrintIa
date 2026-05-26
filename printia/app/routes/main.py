@@ -10,8 +10,7 @@ from app.models import Modelo, Metrica, Usuario, Plan, Suscripcion, Valoracion
 from app.utils import (
     guardar_avatar, 
     eliminar_avatar, 
-    mejorar_prompt_con_ia, 
-    generar_recomendaciones_ia
+    mejorar_prompt_con_ia
 )
 
 main_bp = Blueprint('main', __name__)
@@ -142,12 +141,6 @@ def generar():
         # Restar un crédito si es PRO
         if suscripcion:
             suscripcion.modelos_restantes = max(0, suscripcion.modelos_restantes - 1)
-            
-        # Generar recomendaciones de impresión con IA (solo para usuarios gratuitos)
-        # Los usuarios PRO usarán el análisis visual con Gemini Vision después de la generación
-        recomendaciones_html = None
-        if not current_user.es_pro:
-            recomendaciones_html = generar_recomendaciones_ia(prompt)
         
         nuevo_modelo = Modelo(
             id_usuario=current_user.id_usuario,
@@ -161,10 +154,10 @@ def generar():
         db.session.add(nuevo_modelo)
         db.session.flush() # Para obtener el id_modelo antes del commit final
         
-        # Guardar métrica (con o sin recomendaciones según el tipo de usuario)
+        # Guardar métrica (recomendaciones se generan después solo para PRO vía Gemini Vision)
         nueva_metrica = Metrica(
             id_modelo=nuevo_modelo.id_modelo,
-            recomendaciones=recomendaciones_html
+            recomendaciones=None
         )
         db.session.add(nueva_metrica)
         
