@@ -114,7 +114,57 @@
                     <h3 class="visor-subtitle" style="margin: 0;">Recomendaciones de Impresión</h3>
                 </div>
 
-                <ul class="visor-recs" id="recs-list" style="display: inline-block; text-align: left;">
+                <style>
+                    .visor-recs-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                        gap: 15px;
+                        margin: 0;
+                        padding: 0;
+                        list-style: none;
+                        width: 100%;
+                    }
+                    .visor-recs-grid li {
+                        background: #1C2333;
+                        border: 1px solid #2A3441;
+                        border-radius: 12px;
+                        padding: 16px 20px;
+                        color: #8C929D;
+                        font-size: 0.95rem;
+                        line-height: 1.5;
+                        display: flex;
+                        flex-direction: column;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                        transition: all 0.3s ease;
+                        position: relative;
+                        overflow: hidden;
+                        text-align: left;
+                    }
+                    .visor-recs-grid li:hover {
+                        transform: translateY(-3px);
+                        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+                        border-color: rgba(230, 77, 133, 0.4);
+                    }
+                    .visor-recs-grid li::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 4px;
+                        height: 100%;
+                        background: linear-gradient(to bottom, #E64D85, #a855f7);
+                    }
+                    .visor-recs-grid li b {
+                        display: block;
+                        font-size: 1.05rem;
+                        color: #ffffff;
+                        margin-bottom: 6px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                </style>
+                <ul class="visor-recs-grid" id="recs-list">
                     {{ metrica_recs.recomendaciones | safe }}
                 </ul>
             {% endif %}

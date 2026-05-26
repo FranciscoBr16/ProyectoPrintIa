@@ -146,10 +146,16 @@ def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
         print(f"Error leyendo la imagen del modelo: {e}")
         return None
 
-    # Determinar mime type
-    ext = ruta_imagen.rsplit('.', 1)[-1].lower()
-    mime_types = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'webp': 'image/webp'}
-    mime_type = mime_types.get(ext, 'image/png')
+    # Determinar mime type real leyendo los primeros bytes (magic bytes)
+    if imagen_bytes.startswith(b'\x89PNG\r\n\x1a\n'):
+        mime_type = 'image/png'
+    elif imagen_bytes.startswith(b'\xff\xd8\xff'):
+        mime_type = 'image/jpeg'
+    elif imagen_bytes.startswith(b'RIFF') and imagen_bytes[8:12] == b'WEBP':
+        mime_type = 'image/webp'
+    else:
+        # Fallback por defecto si no lo reconoce, jpeg suele ser más perdonador
+        mime_type = 'image/jpeg'
 
     system_instruction = (
         "Eres un ingeniero experto en impresión 3D FDM con más de 10 años de experiencia práctica. "
@@ -239,7 +245,7 @@ def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
     headers = {"Content-Type": "application/json"}
     params = {"key": gemini_key}
     payload = {
-        "system_instruction": {
+        "systemInstruction": {
             "parts": [{"text": system_instruction}]
         },
         "contents": [
@@ -247,8 +253,8 @@ def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
                 "role": "user",
                 "parts": [
                     {
-                        "inline_data": {
-                            "mime_type": mime_type,
+                        "inlineData": {
+                            "mimeType": mime_type,
                             "data": imagen_b64
                         }
                     },
@@ -297,6 +303,16 @@ def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
                         count += 1
                 if html_recs:
                     return html_recs
+                
+                # Último recurso: si no se pudo parsear como lista, devolver el texto completo
+                return f"<li><b>Análisis General:</b><br>{texto_generado}</li>"
+            else:
+                # Si no hay texto, comprobar si fue por bloqueo de seguridad
+                finish_reason = data.get("candidates", [{}])[0].get("finishReason", "")
+                if finish_reason == "SAFETY":
+                    return "<li><b>Bloqueo de Seguridad:</b><br>La IA de Google no pudo analizar este modelo debido a sus políticas de seguridad (a veces ocurre con diseños cyberpunk o con partes puntiagudas por falso positivo).</li>"
+                elif finish_reason:
+                    return f"<li><b>Análisis Interrumpido:</b><br>La IA detuvo la generación (Motivo: {finish_reason}).</li>"
         else:
             print(f"Error Gemini Vision API ({response.status_code}): {response.text[:300]}")
     except Exception as e:
@@ -363,7 +379,7 @@ def mejorar_prompt_con_ia(prompt_usuario):
     headers = {"Content-Type": "application/json"}
     params = {"key": gemini_key}
     payload = {
-        "system_instruction": {
+        "systemInstruction": {
             "parts": [{"text": system_instruction}]
         },
         "contents": [
