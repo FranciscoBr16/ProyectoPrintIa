@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Pago Exitoso - PrintIA Solutions{% endblock %}
+
+{% block content %}
+<main class="auth-page" style="background-color: var(--color-page-bg);">
+    <div class="auth-card" style="max-width: 500px; text-align: center;">
+        <div style="margin-bottom: 20px;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        </div>
+        
+        <h1 class="auth-card__title" style="color: #28a745; margin-bottom: 10px;">¡Pago Aprobado!</h1>
+        <p class="auth-card__subtitle" style="margin-bottom: 30px;">Tu cuenta ha sido actualizada a PRO exitosamente.</p>
+        
+        {% if receipt %}
+        <div style="background-color: var(--color-card-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 20px; margin-bottom: 30px; text-align: left;">
+            <h3 style="margin-bottom: 15px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 10px;">Detalles de la Transacción</h3>
+            <p style="margin-bottom: 8px; color: var(--color-text-secondary);"><strong>ID:</strong> {{ receipt.transaction_id }}</p>
+            <p style="margin-bottom: 8px; color: var(--color-text-secondary);"><strong>Fecha:</strong> {{ receipt.date }}</p>
+            <p style="margin-bottom: 8px; color: var(--color-text-secondary);"><strong>Monto:</strong> ${{ receipt.amount }}</p>
+            <p style="margin-bottom: 0; color: var(--color-text-secondary);"><strong>Plan:</strong> {{ receipt.plan }}</p>
+        </div>
+
+        <a href="{{ url_for('main.checkout_receipt') }}" class="btn btn--outline" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Descargar Comprobante
+        </a>
+        {% endif %}
+
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn--primary btn--full">
+            Ir a mi Dashboard
+        </a>
+    </div>
+</main>
+{% endblock %}

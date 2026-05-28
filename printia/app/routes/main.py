@@ -533,150 +533,163 @@ def editar_perfil():
 @main_bp.route('/checkout', methods=['GET'])
 @login_required
 def checkout():
-    # Inicializar el SDK de Mercado Pago
-    sdk = mercadopago.SDK(current_app.config['MERCADOPAGO_ACCESS_TOKEN'])
-    
-    import urllib.parse
-    
-    # Construir URLs absolutas con url_for
-    success_url = url_for('main.checkout_success', _external=True)
-    failure_url = url_for('main.checkout_failure', _external=True)
-    pending_url = url_for('main.checkout_pending', _external=True)
-    
-    # HACK LOCAL: Si estamos en localhost/127.0.0.1, Mercado Pago rechaza el auto_return
-    # y oculta el botón de "Volver al sitio". Para evitarlo, usamos httpbin para hacer
-    # un bypass seguro que redirija de vuelta a nuestro localhost.
-    if success_url.startswith('http://127.0.0.1') or success_url.startswith('http://localhost'):
-        success_url = f"https://httpbin.org/redirect-to?url={urllib.parse.quote(success_url)}"
-        failure_url = f"https://httpbin.org/redirect-to?url={urllib.parse.quote(failure_url)}"
-        pending_url = f"https://httpbin.org/redirect-to?url={urllib.parse.quote(pending_url)}"
-        
-    # Crear los datos de la preferencia
-    preference_data = {
-        "items": [
-            {
-                "id": "printia_pro",
-                "title": "Suscripción PRO PrintIA (1 Mes)",
-                "quantity": 1,
-                "unit_price": 1000.0,  # 1000 moneda local (ej. ARS)
-                "currency_id": "ARS"
-            }
-        ],
-        "back_urls": {
-            "success": success_url,
-            "failure": failure_url,
-            "pending": pending_url
-        },
-        "auto_return": "approved",
-        "external_reference": str(current_user.id_usuario),
-        "statement_descriptor": "PRINTIA PRO"
-    }
+    return render_template('checkout.html')
 
-    try:
-        preference_response = sdk.preference().create(preference_data)
-        
-        if preference_response.get("status") not in (200, 201):
-            error_msg = preference_response.get('response', 'Error desconocido de MP')
-            raise Exception(f"API Error: {error_msg}")
+@main_bp.route('/checkout/process', methods=['POST'])
+@login_required
+def checkout_process():
+    card_number = request.form.get('card_number', '').replace(' ', '').replace('-', '')
+    
+    # Simulamos la aprobación solo para una tarjeta específica
+    # Por ejemplo, una tarjeta que termine en 4242 o sea todo 4242
+    if card_number == '4242424242424242':
+        # Pago aprobado
+        # Buscamos o creamos el plan PRO
+        plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
+        if not plan_pro:
+            plan_pro = Plan(nombre_plan='PRO', limite_exportaciones_mensual=15, precio=10.00)
+            db.session.add(plan_pro)
+            db.session.commit()
+        else:
+            plan_pro.precio = 10.00
+            plan_pro.limite_exportaciones_mensual = 15
+            db.session.commit()
             
-        preference = preference_response["response"]
+        # Actualizamos la suscripción del usuario
+        suscripcion = Suscripcion.query.filter_by(id_usuario=current_user.id_usuario).first()
+        hoy = datetime.date.today()
+        vencimiento = hoy + datetime.timedelta(days=30)
         
-        # Como estamos usando el Token de una Cuenta de Prueba, 
-        # debemos usar el init_point normal (MP ya sabe que es falso)
-        init_point = preference.get("init_point")
-        if not init_point:
-            raise Exception("No se recibió ningún init_point válido.")
+        if suscripcion:
+            suscripcion.id_plan = plan_pro.id_plan
+            suscripcion.fecha_inicio = hoy
+            suscripcion.fecha_fin = vencimiento
+            suscripcion.estado = 'Activa'
+            suscripcion.metodo_pago = 'Pasarela Ficticia'
+            suscripcion.modelos_restantes = plan_pro.limite_exportaciones_mensual
+        else:
+            # FIX: Puesto que la base de datos no tiene AUTO_INCREMENT para id_suscripcion, lo calculamos manualmente.
+            from sqlalchemy import func
+            max_id = db.session.query(func.max(Suscripcion.id_suscripcion)).scalar() or 0
+            
+            nueva_suscripcion = Suscripcion(
+                id_suscripcion=max_id + 1,
+                id_plan=plan_pro.id_plan,
+                id_usuario=current_user.id_usuario,
+                fecha_inicio=hoy,
+                fecha_fin=vencimiento,
+                estado='Activa',
+                metodo_pago='Pasarela Ficticia',
+                modelos_restantes=plan_pro.limite_exportaciones_mensual
+            )
+            db.session.add(nueva_suscripcion)
+            
+        db.session.commit()
         
-        return render_template('checkout.html', init_point=init_point, preference_id=preference.get("id"))
-    except Exception as e:
-        print(f"Error creando preferencia de Mercado Pago: {e}")
-        flash(f'Error MP: {str(e)}', 'error')
-        return redirect(url_for('main.planes'))
+        import uuid
+        from flask import session
+        transaction_id = str(uuid.uuid4())
+        
+        session['last_receipt'] = {
+            'transaction_id': transaction_id,
+            'amount': 1000.0,
+            'date': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'user': current_user.nombre_usuario,
+            'plan': 'PRO PrintIA (1 Mes)'
+        }
+        
+        return redirect(url_for('main.checkout_success'))
+    else:
+        # Pago denegado
+        return redirect(url_for('main.checkout_failure'))
 
 @main_bp.route('/checkout/success')
 @login_required
 def checkout_success():
-    # Ya no actualizamos la base de datos aquí, eso lo hace el Webhook.
-    # Solo le damos un mensaje amable al usuario.
-    flash('¡Pago procesado en Mercado Pago! Si fue aprobado, tu cuenta se actualizará a PRO en breves instantes.', 'success')
-    return redirect(url_for('main.dashboard'))
+    from flask import session
+    receipt = session.get('last_receipt')
+    return render_template('checkout_success.html', receipt=receipt)
 
 @main_bp.route('/checkout/failure')
 @login_required
 def checkout_failure():
-    flash('El pago fue rechazado. Intenta con otro medio de pago o revisa el saldo de tu tarjeta.', 'error')
+    flash('El pago fue rechazado. Intenta con otro medio de pago.', 'error')
     return redirect(url_for('main.checkout'))
 
-@main_bp.route('/checkout/pending')
+@main_bp.route('/checkout/receipt')
 @login_required
-def checkout_pending():
-    flash('El pago está pendiente de aprobación por Mercado Pago. Te notificaremos pronto.', 'info')
-    return redirect(url_for('main.checkout'))
-
-@main_bp.route('/webhook-mercadopago', methods=['POST'])
-def webhook_mercadopago():
-    """
-    Ruta que Mercado Pago llama cuando hay una actualización en el pago.
-    """
-    # Mercado Pago puede mandar info por query params (topic/id) o JSON
-    data = request.json
-    action = data.get("action")
+def checkout_receipt():
+    from flask import session
+    receipt = session.get('last_receipt')
+    if not receipt:
+        flash('No hay comprobante disponible.', 'error')
+        return redirect(url_for('main.dashboard'))
+        
+    import io
+    import os
+    from flask import send_file, current_app
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib import colors
     
-    if action == "payment.created" or data.get("type") == "payment":
-        payment_id = data.get("data", {}).get("id")
-        if payment_id:
-            try:
-                sdk = mercadopago.SDK(current_app.config['MERCADOPAGO_ACCESS_TOKEN'])
-                payment_response = sdk.payment().get(payment_id)
-                payment_info = payment_response.get("response", {})
-                
-                # Si el pago fue aprobado, buscamos a qué usuario pertenece
-                if payment_info.get("status") == "approved":
-                    user_id = payment_info.get("external_reference")
-                    
-                    if user_id:
-                        # Buscamos o creamos el plan PRO
-                        plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
-                        if not plan_pro:
-                            plan_pro = Plan(nombre_plan='PRO', limite_exportaciones_mensual=15, precio=10.00)
-                            db.session.add(plan_pro)
-                            db.session.commit()
-                        else:
-                            plan_pro.precio = 10.00
-                            plan_pro.limite_exportaciones_mensual = 15
-                            db.session.commit()
-                            
-                        # Actualizamos la suscripción del usuario
-                        suscripcion = Suscripcion.query.filter_by(id_usuario=int(user_id)).first()
-                        hoy = datetime.date.today()
-                        vencimiento = hoy + datetime.timedelta(days=30)
-                        
-                        if suscripcion:
-                            suscripcion.id_plan = plan_pro.id_plan
-                            suscripcion.fecha_inicio = hoy
-                            suscripcion.fecha_fin = vencimiento
-                            suscripcion.estado = 'Activa'
-                            suscripcion.metodo_pago = 'Mercado Pago'
-                            suscripcion.modelos_restantes = plan_pro.limite_exportaciones_mensual
-                        else:
-                            nueva_suscripcion = Suscripcion(
-                                id_plan=plan_pro.id_plan,
-                                id_usuario=int(user_id),
-                                fecha_inicio=hoy,
-                                fecha_fin=vencimiento,
-                                estado='Activa',
-                                metodo_pago='Mercado Pago',
-                                modelos_restantes=plan_pro.limite_exportaciones_mensual
-                            )
-                            db.session.add(nueva_suscripcion)
-                            
-                        db.session.commit()
-                        print(f"WEBHOOK: Usuario {user_id} actualizado a PRO exitosamente.")
-            except Exception as e:
-                print(f"WEBHOOK ERROR: {e}")
-                
-    # Siempre debemos responder 200 OK a Mercado Pago para que sepan que recibimos la notificación
-    return jsonify({"status": "ok"}), 200
+    mem_file = io.BytesIO()
+    c = canvas.Canvas(mem_file, pagesize=letter)
+    width, height = letter
+    
+    # Dibujar Cabecera
+    # Logo
+    logo_path = os.path.join(current_app.root_path, 'static', 'assets', 'logo.png')
+    if os.path.exists(logo_path):
+        # Anchor at south west
+        c.drawImage(logo_path, 50, height - 100, width=150, height=60, preserveAspectRatio=True, anchor='sw')
+        
+    # Título
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(250, height - 70, "COMPROBANTE DE PAGO")
+    
+    c.setFont("Helvetica", 10)
+    c.drawString(250, height - 90, f"Fecha: {receipt['date']}")
+    c.drawString(250, height - 105, "PrintIA Solutions")
+    
+    # Línea separadora
+    c.setStrokeColor(colors.lightgrey)
+    c.line(50, height - 120, width - 50, height - 120)
+    
+    # Datos de transacción
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, height - 160, "Detalles de la Transacción:")
+    
+    c.setFont("Helvetica", 11)
+    c.drawString(50, height - 190, f"ID de Transacción: {receipt['transaction_id']}")
+    c.drawString(50, height - 210, f"Usuario: {receipt['user']}")
+    c.drawString(50, height - 230, f"Suscripción: {receipt['plan']}")
+    c.drawString(50, height - 250, f"Método de Pago: Tarjeta de Crédito")
+    
+    # Caja de total
+    c.setStrokeColor(colors.black)
+    c.setFillColor(colors.whitesmoke)
+    c.rect(50, height - 320, 250, 40, fill=1)
+    
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(60, height - 305, f"Total Pagado: ${receipt['amount']:.2f} ARS")
+    
+    # Mensaje final
+    c.setFont("Helvetica-Oblique", 11)
+    c.drawString(50, height - 380, "¡Gracias por tu compra y bienvenido a PrintIA PRO!")
+    c.drawString(50, height - 400, "Este documento es válido como recibo oficial de tu pago electrónico.")
+    
+    c.showPage()
+    c.save()
+    
+    mem_file.seek(0)
+    
+    return send_file(
+        mem_file,
+        as_attachment=True,
+        download_name=f"comprobante_{receipt['transaction_id'][:8]}.pdf",
+        mimetype='application/pdf'
+    )
 
 def distribucion_tiempos():
     rangos = [

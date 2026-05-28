@@ -1,43 +1,359 @@
 {% extends "base.html" %}
 
-{% block title %}Checkout - PrintIA Solutions{% endblock %}
+{% block title %}Pago Seguro - PrintIA Solutions{% endblock %}
 
 {% block content %}
+<style>
+    .checkout-container {
+        max-width: 800px;
+        margin: 40px auto;
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 30px;
+        align-items: flex-start;
+    }
+
+    @media (max-width: 768px) {
+        .checkout-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .order-summary {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+
+    .payment-form {
+        background-color: var(--color-card-bg, #ffffff);
+        border-radius: 12px;
+        padding: 35px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .secure-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: #28a745;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+        background: rgba(40, 167, 69, 0.1);
+        padding: 8px 12px;
+        border-radius: 20px;
+    }
+
+    .card-input-wrapper {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .checkout-input {
+        width: 100%;
+        padding: 14px 14px 14px 45px;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s, box-shadow 0.3s;
+        background-color: #ffffff;
+        color: #333333;
+    }
+    
+    /* Para modo oscuro, si aplica */
+    @media (prefers-color-scheme: dark) {
+        .checkout-input {
+            background-color: #2b2b2b;
+            border-color: #444;
+            color: #eee;
+        }
+    }
+
+    .checkout-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+
+    .checkout-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--color-text-primary, #333);
+        font-size: 0.9rem;
+    }
+
+    .btn-pay {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        border: none;
+        padding: 16px;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        width: 100%;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-top: 10px;
+    }
+
+    .btn-pay:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
+    }
+
+    .card-logos {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        justify-content: center;
+        opacity: 0.6;
+    }
+    
+    .card-logos svg {
+        height: 24px;
+        width: auto;
+    }
+
+    .test-mode-alert {
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+    }
+</style>
+
 <main class="auth-page" style="background-color: var(--color-page-bg);">
-    <div class="auth-card" style="max-width: 500px;">
-        <h1 class="auth-card__title">Actualizar a PRO</h1>
-        <p class="auth-card__subtitle">Completa tus datos de pago para desbloquear todas las funciones.</p>
+    <div class="checkout-container">
         
-        <div style="text-align: center; margin: 30px 0;">
-            <div style="background-color: var(--color-card-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                <h2 style="font-size: 1.2rem; margin-bottom: 10px; color: var(--color-text-primary);">Resumen de tu compra</h2>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--color-text-secondary);">
-                    <span>Plan PRO PrintIA (1 Mes)</span>
-                    <span style="font-weight: 600; color: var(--color-text-primary);">$1000.00</span>
+        <!-- Order Summary Column -->
+        <div class="order-summary">
+            <h2 style="font-size: 1.4rem; margin-bottom: 25px; color: #333;">Resumen de la Orden</h2>
+            
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
+                    PRO
                 </div>
-                <hr style="border: 0; border-top: 1px solid var(--color-border); margin: 15px 0;">
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; color: var(--color-text-primary);">
-                    <span>Total a pagar</span>
-                    <span>$1000.00</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: #333;">Suscripción PrintIA PRO</h3>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem;">Acceso completo por 1 Mes</p>
                 </div>
             </div>
 
-            <p style="font-size: 0.85rem; color: var(--color-navbar-text); margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <hr style="border: 0; border-top: 1px solid rgba(0,0,0,0.1); margin: 20px 0;">
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #555;">
+                <span>Subtotal</span>
+                <span>$1000.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #555;">
+                <span>Impuestos</span>
+                <span>$0.00</span>
+            </div>
+
+            <hr style="border: 0; border-top: 1px dashed rgba(0,0,0,0.2); margin: 20px 0;">
+
+            <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 1.3rem; color: #111;">
+                <span>Total a Pagar</span>
+                <span>$1000.00</span>
+            </div>
+            
+            <div style="margin-top: 30px; text-align: center;">
+                <a href="{{ url_for('main.planes') }}" style="color: #666; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Volver a Planes
+                </a>
+            </div>
+        </div>
+
+        <!-- Payment Form Column -->
+        <div class="payment-form">
+            <div class="secure-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                Pago seguro procesado por Mercado Pago.
-            </p>
+                Pago 100% Seguro y Encriptado
+            </div>
 
-            <a href="{{ init_point }}" class="btn btn--primary btn--full" style="display: inline-block; padding: 14px 24px; font-size: 1.1rem; font-weight: bold; background-color: #009EE3; color: white; border: none; border-radius: 6px; text-decoration: none; text-align: center; width: 100%; cursor: pointer;">
-                Pagar con Mercado Pago
-            </a>
-        </div>
-        
-        <div class="auth-card__footer">
-            <a href="{{ url_for('main.planes') }}" class="auth-link">Cancelar y volver a Planes</a>
+            <h2 style="font-size: 1.5rem; margin-bottom: 5px; color: var(--color-text-primary);">Detalles de Pago</h2>
+            <p style="color: var(--color-text-secondary); margin-bottom: 25px; font-size: 0.9rem;">Todas las transacciones son seguras y están encriptadas.</p>
+
+            <div class="test-mode-alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div>
+                    <strong>Modo de Prueba Activo:</strong> Usa el número de tarjeta <strong style="letter-spacing: 1px;">4242 4242 4242 4242</strong> para simular un pago exitoso. Cualquier otro dato en los demás campos es válido.
+                </div>
+            </div>
+
+            <form id="payment-form" action="{{ url_for('main.checkout_process') }}" method="POST">
+                
+                <!-- Loading Overlay (Oculto por defecto) -->
+                <div id="processing-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center;">
+                    <style>
+                        .spinner {
+                            border: 4px solid rgba(0, 0, 0, 0.1);
+                            width: 60px;
+                            height: 60px;
+                            border-radius: 50%;
+                            border-left-color: #007bff;
+                            animation: spin 1s linear infinite;
+                            margin-bottom: 20px;
+                        }
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    </style>
+                    <div class="spinner"></div>
+                    <h2 style="color: #333; font-size: 1.5rem; margin-bottom: 10px;">Procesando tu pago...</h2>
+                    <p style="color: #666; font-size: 1rem;">Por favor, no cierres ni actualices esta ventana.</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label for="card_number" class="checkout-label">Número de Tarjeta</label>
+                    <div class="card-input-wrapper" style="margin-bottom: 10px;">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                        <input type="text" id="card_number" name="card_number" class="checkout-input" placeholder="0000 0000 0000 0000" required maxlength="19" style="font-family: 'Courier New', Courier, monospace; font-size: 1.15rem; letter-spacing: 2px;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 15px;">
+                        <!-- VISA -->
+                        <div style="display: flex; align-items: center; justify-content: center; border: 1px solid #111; border-radius: 4px; height: 24px; padding: 0 4px; background-color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                            <span style="color: #1434CB; font-weight: 900; font-family: Arial, Helvetica, sans-serif; font-style: italic; font-size: 14px; letter-spacing: -1px; line-height: 1;">VISA</span>
+                        </div>
+                        <!-- AMEX -->
+                        <div style="display: flex; align-items: center; justify-content: center; border: 1px solid #e0e0e0; border-radius: 4px; height: 24px; padding: 0 3px; background-color: #fff;">
+                            <div style="background-color: #2671B9; color: white; font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: 5px; width: 24px; height: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; border-radius: 2px;">
+                                <span>AMERICAN</span>
+                                <span>EXPRESS</span>
+                            </div>
+                        </div>
+                        <!-- Mastercard -->
+                        <div style="display: flex; align-items: center; justify-content: center; border: 1px solid #e0e0e0; border-radius: 4px; height: 24px; padding: 0 4px; background-color: #fff; flex-direction: column;">
+                            <svg viewBox="0 0 32 20" width="22" height="12">
+                                <circle cx="11" cy="10" r="8" fill="#EB001B" opacity="0.9"/>
+                                <circle cx="21" cy="10" r="8" fill="#F79E1B" opacity="0.9"/>
+                            </svg>
+                            <span style="font-family: Arial, sans-serif; font-weight: bold; font-size: 4px; color: #333; margin-top: 1px;">mastercard</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label for="card_name" class="checkout-label">Nombre en la Tarjeta</label>
+                    <div class="card-input-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <input type="text" id="card_name" name="card_name" class="checkout-input" placeholder="Ej: JUAN PEREZ" required style="text-transform: uppercase;">
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 10px; align-items: end;">
+                    <div>
+                        <label for="expiry_date" class="checkout-label">Vencimiento</label>
+                        <div class="card-input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <input type="text" id="expiry_date" name="expiry_date" class="checkout-input" placeholder="MM/YY" required maxlength="5" style="text-align: center;">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="cvv" class="checkout-label">Código CVV</label>
+                        <div class="card-input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            <input type="text" id="cvv" name="cvv" class="checkout-input" placeholder="123" required maxlength="4" style="text-align: center; letter-spacing: 2px;">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-pay" id="btn-submit">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>Pagar $1000.00 ARS</span>
+                </button>
+            </form>
         </div>
     </div>
 </main>
+<script>
+    // Interceptar el envío del formulario para simular procesamiento
+    document.getElementById('payment-form').addEventListener('submit', function(e) {
+        e.preventDefault(); // Detenemos el envío inmediato
+        
+        var form = this;
+        var btn = document.getElementById('btn-submit');
+        var overlay = document.getElementById('processing-overlay');
+        
+        // Mostrar el overlay de carga
+        overlay.style.display = 'flex';
+        
+        // Simular un tiempo de procesamiento de pasarela de 2.5 segundos
+        setTimeout(function() {
+            form.submit(); // Enviamos el formulario de verdad
+        }, 2500);
+    });
+
+    // Formatear el número de tarjeta mientras se escribe
+    document.getElementById('card_number').addEventListener('input', function (e) {
+        var target = e.target;
+        var position = target.selectionEnd;
+        var length = target.value.length;
+        
+        target.value = target.value.replace(/[^\d]/g, '').replace(/(.{4})/g, '$1 ').trim();
+        
+        if(position !== length) {
+            target.selectionEnd = position;
+        }
+    });
+
+    // Formatear vencimiento
+    document.getElementById('expiry_date').addEventListener('input', function (e) {
+        var target = e.target;
+        target.value = target.value.replace(/[^\d]/g, '');
+        if (target.value.length > 2) {
+            target.value = target.value.substring(0, 2) + '/' + target.value.substring(2, 4);
+        }
+    });
+</script>
 {% endblock %}
