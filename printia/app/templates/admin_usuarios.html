@@ -11,24 +11,50 @@
         </div>
     </div>
 
+    <div class="filters-container" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap;">
+        <input type="text" id="searchUsuario" placeholder="Buscar por usuario..." class="form-input" style="max-width: 300px;">
+        <select id="filterSelect" class="form-input" style="max-width: 250px;">
+            <option value="all">Filtros: Todos</option>
+            <optgroup label="Estado">
+                <option value="estado_activo">Solo Activos</option>
+                <option value="estado_inactivo">Solo Inactivos</option>
+            </optgroup>
+            <optgroup label="Plan">
+                <option value="plan_pro">Solo PRO</option>
+                <option value="plan_gratis">Solo Gratis</option>
+            </optgroup>
+            <optgroup label="Rol">
+                <option value="rol_admin">Solo Administradores</option>
+                <option value="rol_usuario">Solo Usuarios</option>
+            </optgroup>
+        </select>
+    </div>
+
     <div class="admin-table-container">
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th class="sortable" data-sort-field="id" onclick="toggleSort('id')">ID <span class="sort-icon"></span></th>
                     <th>Usuario</th>
                     <th>Email</th>
-                    <th>Registro</th>
+                    <th class="sortable" data-sort-field="registro" onclick="toggleSort('registro')">Registro <span class="sort-icon"></span></th>
                     <th>Plan</th>
-                    <th>Expiración</th>
+                    <th class="sortable" data-sort-field="expiracion" onclick="toggleSort('expiracion')">Expiración <span class="sort-icon"></span></th>
                     <th>Rol</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="usuariosTbody">
                 {% for u in usuarios %}
-                <tr class="{% if not u.activo %}row-inactive{% endif %}">
+                <tr class="user-row {% if not u.activo %}row-inactive{% endif %}"
+                    data-id="{{ u.id_usuario }}"
+                    data-username="{{ u.nombre_usuario|lower }}"
+                    data-registro="{{ u.fecha_registro.isoformat() }}"
+                    data-expiracion="{% if u.es_pro and u.suscripcion_activa %}{{ u.suscripcion_activa.fecha_fin.isoformat() }}{% else %}9999-12-31T23:59:59{% endif %}"
+                    data-estado="{% if u.activo %}activo{% else %}inactivo{% endif %}"
+                    data-plan="{% if u.es_pro %}pro{% else %}gratis{% endif %}"
+                    data-rol="{% if u.es_admin %}admin{% else %}usuario{% endif %}">
                     <td>#{{ u.id_usuario }}</td>
                     <td>
                         <div class="user-cell">
@@ -251,6 +277,118 @@ function openFacturasModal(id, nombre) {
 function closeFacturasModal() {
     document.getElementById('facturasModal').style.display = 'none';
 }
+
+let currentSort = { field: null, direction: 'default' };
+
+function toggleSort(field) {
+    if (currentSort.field === field) {
+        if (currentSort.direction === 'asc') currentSort.direction = 'desc';
+        else if (currentSort.direction === 'desc') currentSort.direction = 'default';
+        else currentSort.direction = 'asc';
+    } else {
+        currentSort.field = field;
+        currentSort.direction = 'asc';
+    }
+    
+    // Actualizar visualmente los encabezados
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.classList.remove('asc', 'desc', 'active');
+        if (th.getAttribute('data-sort-field') === currentSort.field && currentSort.direction !== 'default') {
+            th.classList.add(currentSort.direction);
+            th.classList.add('active');
+        }
+    });
+
+    filterAndSort();
+}
+
+function filterAndSort() {
+    const searchInput = document.getElementById('searchUsuario');
+    const filterSelect = document.getElementById('filterSelect');
+    const tbody = document.getElementById('usuariosTbody');
+    if (!tbody || !searchInput || !filterSelect) return;
+    
+    const rows = Array.from(tbody.querySelectorAll('.user-row'));
+    const searchTerm = searchInput.value.toLowerCase();
+    const filterValue = filterSelect.value;
+
+    // Filtrar
+    let visibleRows = rows.filter(row => {
+        const username = row.getAttribute('data-username');
+        const matchesSearch = username.includes(searchTerm);
+        
+        let matchesCategory = true;
+        if (filterValue !== 'all') {
+            const parts = filterValue.split('_');
+            const filterType = parts[0];
+            const filterVal = parts[1];
+            if (row.getAttribute('data-' + filterType) !== filterVal) {
+                matchesCategory = false;
+            }
+        }
+
+        if (matchesSearch && matchesCategory) {
+            row.style.display = '';
+            return true;
+        } else {
+            row.style.display = 'none';
+            return false;
+        }
+    });
+
+    // Ordenar
+    visibleRows.sort((a, b) => {
+        if (currentSort.direction === 'default') {
+            return parseInt(a.getAttribute('data-index')) - parseInt(b.getAttribute('data-index'));
+        }
+
+        let valA = a.getAttribute('data-' + currentSort.field);
+        let valB = b.getAttribute('data-' + currentSort.field);
+        
+        let comparison = 0;
+        if (currentSort.field === 'id') {
+            comparison = parseInt(valA) - parseInt(valB);
+        } else {
+            comparison = valA.localeCompare(valB);
+        }
+        
+        return currentSort.direction === 'asc' ? comparison : -comparison;
+    });
+
+    // Re-adjuntar al DOM para mantener el orden
+    visibleRows.forEach(row => tbody.appendChild(row));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchUsuario');
+    const filterSelect = document.getElementById('filterSelect');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', filterAndSort);
+    }
+    if (filterSelect) {
+        filterSelect.addEventListener('change', filterAndSort);
+    }
+    
+    const tbody = document.getElementById('usuariosTbody');
+    if (tbody) {
+        const rows = Array.from(tbody.querySelectorAll('.user-row'));
+        rows.forEach((row, index) => {
+            row.setAttribute('data-index', index);
+        });
+    }
+
+    // Inicializar visual de sort
+    document.querySelectorAll('.sortable').forEach(th => {
+        if (th.getAttribute('data-sort-field') === currentSort.field && currentSort.direction !== 'default') {
+            th.classList.add(currentSort.direction);
+            th.classList.add('active');
+        }
+    });
+    
+    // Ejecutar filtro inicial
+    filterAndSort();
+});
 </script>
 
 <style>
@@ -292,6 +430,49 @@ function closeFacturasModal() {
     color: #64748b;
     font-weight: 600;
     border-bottom: 2px solid #f1f5f9;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+
+.sortable:hover {
+    background-color: #f8fafc;
+    color: #1e293b;
+}
+
+.sort-icon {
+    display: inline-block;
+    width: 1em;
+    text-align: center;
+    color: transparent;
+    font-size: 1.1em;
+    font-weight: 800;
+    margin-left: 0.35rem;
+    transition: color 0.2s;
+}
+
+.sort-icon::after {
+    content: '↑'; /* Default hidden arrow */
+}
+
+.sortable:hover .sort-icon {
+    color: #cbd5e1; /* Show dim arrow on hover */
+}
+
+.sortable.active .sort-icon {
+    color: #E64D85;
+}
+
+.sortable.asc .sort-icon::after {
+    content: '↑';
+}
+
+.sortable.desc .sort-icon::after {
+    content: '↓';
 }
 
 .admin-table td {
