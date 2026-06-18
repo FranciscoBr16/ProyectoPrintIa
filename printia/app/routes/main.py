@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app import db
-from app.models import Modelo, Metrica, Usuario, Plan, Suscripcion, Valoracion
+from app.models import Modelo, Metrica, Usuario, Plan, Suscripcion, Valoracion, Factura
 from app.utils import (
     guardar_avatar, 
     eliminar_avatar, 
@@ -590,6 +590,16 @@ def checkout_process():
         from flask import session
         transaction_id = str(uuid.uuid4())
         
+        # Guardar Factura en BD
+        nueva_factura = Factura(
+            id_usuario=current_user.id_usuario,
+            monto=1000.0,
+            detalle='PRO PrintIA (1 Mes)',
+            transaction_id=transaction_id
+        )
+        db.session.add(nueva_factura)
+        db.session.commit()
+        
         session['last_receipt'] = {
             'transaction_id': transaction_id,
             'amount': 1000.0,
@@ -797,7 +807,120 @@ def admin_dashboard():
     total_usuarios = Usuario.query.count()
     total_modelos = Modelo.query.count()
     usuarios_pro = Suscripcion.query.filter_by(estado='Activa').count()
+    
+    con_recom = Metrica.query.filter(Metrica.recomendaciones.isnot(None)).count()
+    sin_recom = Metrica.query.filter(Metrica.recomendaciones.is_(None)).count()
+    
+    datos_anio = get_datos_anuales()
+    datos_semana = get_datos_semana()
+    datos_tiempos = distribucion_tiempos()
 
+    return render_template('admin_dashboard.html',
+                           total_usuarios=total_usuarios,
+                           usuarios_pro=usuarios_pro,
+                           total_modelos=total_modelos,
+                           modelos_semana=modelos_semana,
+                           tiempo_promedio=round(tiempo_promedio, 2),
+                           tiempo_min=round(tiempo_min, 2),
+                           tiempo_max=round(tiempo_max, 2),
+                           suscritos_mes_actual=suscritos_mes_actual,
+                           suscritos_mes_anterior=suscritos_mes_anterior,
+                           total_descargas=total_descargas,
+                           labels_hoy=labels_hoy,
+                           valores_hoy=valores_hoy,
+                           labels_anio=datos_anio['labels'],
+                           valores_anio=datos_anio['valores'],
+                           labels_semana=datos_semana['labels'],
+                           valores_semana=datos_semana['valores'],
+                           dist_labels=datos_tiempos['labels'],
+                           dist_data=datos_tiempos['data'],
+                           exitos=exitos,
+                           errores=errores,
+                           likes=likes,
+                           dislikes=dislikes,
+                           con_recom=con_recom,
+                           sin_recom=sin_recom)
+
+@main_bp.route('/perfil/facturas')
+@login_required
+def facturas():
+    facturas_lista = Factura.query.filter_by(id_usuario=current_user.id_usuario).order_by(Factura.fecha.desc()).all()
+    return render_template('facturas.html', facturas=facturas_lista)
+
+@main_bp.route('/perfil/facturas/<int:id_factura>/descargar')
+@login_required
+def descargar_factura(id_factura):
+    factura = Factura.query.get_or_404(id_factura)
+    # Permiso: el dueño de la factura o un administrador
+    if factura.id_usuario != current_user.id_usuario and not current_user.es_admin:
+        flash('No tienes permiso para descargar esta factura.', 'error')
+        return redirect(url_for('main.facturas'))
+        
+    import io
+    import os
+    from flask import send_file, current_app
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib import colors
+    
+    mem_file = io.BytesIO()
+    c = canvas.Canvas(mem_file, pagesize=letter)
+    width, height = letter
+    
+    # Dibujar Cabecera
+    # Logo
+    logo_path = os.path.join(current_app.root_path, 'static', 'assets', 'logo.png')
+    if os.path.exists(logo_path):
+        # Anchor at south west
+        c.drawImage(logo_path, 50, height - 100, width=150, height=60, preserveAspectRatio=True, anchor='sw')
+        
+    # Título
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(250, height - 70, "FACTURA DE COMPRA")
+    
+    c.setFont("Helvetica", 10)
+    c.drawString(250, height - 90, f"Fecha: {factura.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
+    c.drawString(250, height - 105, "PrintIA Solutions")
+    
+    # Línea separadora
+    c.setStrokeColor(colors.lightgrey)
+    c.line(50, height - 120, width - 50, height - 120)
+    
+    # Datos de transacción
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, height - 160, "Detalles de la Transacción:")
+    
+    c.setFont("Helvetica", 11)
+    c.drawString(50, height - 190, f"ID de Transacción: {factura.transaction_id}")
+    c.drawString(50, height - 210, f"Usuario: {current_user.nombre_usuario}")
+    c.drawString(50, height - 230, f"Detalle: {factura.detalle}")
+    c.drawString(50, height - 250, f"Método de Pago: Tarjeta de Crédito")
+    
+    # Caja de total
+    c.setStrokeColor(colors.black)
+    c.setFillColor(colors.whitesmoke)
+    c.rect(50, height - 320, 250, 40, fill=1)
+    
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(60, height - 305, f"Total Pagado: ${factura.monto:.2f} ARS")
+    
+    # Mensaje final
+    c.setFont("Helvetica-Oblique", 11)
+    c.drawString(50, height - 380, "¡Gracias por tu compra y bienvenido a PrintIA PRO!")
+    c.drawString(50, height - 400, "Este documento es válido como recibo oficial de tu pago electrónico.")
+    
+    c.showPage()
+    c.save()
+    
+    mem_file.seek(0)
+    
+    return send_file(
+        mem_file,
+        as_attachment=True,
+        download_name=f"factura_{factura.transaction_id[:8]}.pdf",
+        mimetype='application/pdf'
+    )
     dist_tiempos = distribucion_tiempos()
     datos_semana = get_datos_semana()
     datos_anuales = get_datos_anuales()
@@ -831,3 +954,97 @@ def admin_dashboard():
                            con_recom=con_recom,
                            total_descargas=total_descargas,
                            sin_recom=sin_recom)
+
+@main_bp.route('/admin/usuarios')
+@login_required
+def admin_usuarios():
+    if not current_user.es_admin:
+        flash('Acceso denegado. Se requieren permisos de administrador.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    usuarios = Usuario.query.order_by(Usuario.fecha_registro.desc()).all()
+    
+    # Precalcular datos para la plantilla
+    for u in usuarios:
+        suscripcion_activa = next((s for s in u.suscripciones if s.estado == 'Activa'), None)
+        u.suscripcion_activa = suscripcion_activa
+        
+    return render_template('admin_usuarios.html', usuarios=usuarios)
+
+@main_bp.route('/admin/usuarios/<int:id_usuario>/editar', methods=['POST'])
+@login_required
+def editar_usuario_admin(id_usuario):
+    if not current_user.es_admin:
+        flash('Acceso denegado.', 'error')
+        return redirect(url_for('main.dashboard'))
+        
+    usuario = Usuario.query.get_or_404(id_usuario)
+    
+    nombre_usuario = request.form.get('nombre_usuario')
+    email = request.form.get('email')
+    nueva_password = request.form.get('nueva_password')
+    
+    # Los checkboxes no envían valor si no están marcados
+    es_admin = 'es_admin' in request.form
+    
+    if nombre_usuario and email:
+        usuario.nombre_usuario = nombre_usuario
+        usuario.email = email
+        usuario.es_admin = es_admin
+        
+        if nueva_password and len(nueva_password.strip()) > 0:
+            if len(nueva_password) < 6:
+                flash('La contraseña debe tener al menos 6 caracteres.', 'error')
+                return redirect(url_for('main.admin_usuarios'))
+            usuario.set_password(nueva_password)
+            
+        db.session.commit()
+        flash('Usuario actualizado correctamente.', 'success')
+    else:
+        flash('Faltan datos obligatorios.', 'error')
+        
+    return redirect(url_for('main.admin_usuarios'))
+
+@main_bp.route('/admin/usuarios/<int:id_usuario>/baja', methods=['POST'])
+@login_required
+def baja_usuario(id_usuario):
+    if not current_user.es_admin:
+        flash('Acceso denegado.', 'error')
+        return redirect(url_for('main.dashboard'))
+        
+    usuario = Usuario.query.get_or_404(id_usuario)
+    
+    if usuario.id_usuario == current_user.id_usuario:
+        flash('No puedes darte de baja a ti mismo.', 'error')
+        return redirect(url_for('main.admin_usuarios'))
+        
+    # Alternar estado
+    usuario.activo = not usuario.activo
+    db.session.commit()
+    
+    if usuario.activo:
+        flash(f'El usuario {usuario.nombre_usuario} ha sido reactivado.', 'success')
+    else:
+        flash(f'El usuario {usuario.nombre_usuario} ha sido dado de baja.', 'success')
+        
+    return redirect(url_for('main.admin_usuarios'))
+
+@main_bp.route('/admin/usuarios/<int:id_usuario>/facturas')
+@login_required
+def get_facturas_usuario(id_usuario):
+    if not current_user.es_admin:
+        return jsonify({'error': 'Acceso denegado.'}), 403
+        
+    facturas = Factura.query.filter_by(id_usuario=id_usuario).order_by(Factura.fecha.desc()).all()
+    facturas_data = []
+    for f in facturas:
+        facturas_data.append({
+            'id_factura': f.id_factura,
+            'monto': f"{float(f.monto):.2f}",
+            'fecha': f.fecha.strftime('%d/%m/%Y %H:%M'),
+            'detalle': f.detalle,
+            'transaction_id': f.transaction_id
+        })
+        
+    return jsonify(facturas_data)
+

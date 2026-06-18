@@ -24,6 +24,10 @@ def login():
         usuario = Usuario.query.filter_by(email=email).first()
         
         if usuario and usuario.check_password(password):
+            if not usuario.activo:
+                flash('Tu cuenta ha sido desactivada. Contacta al soporte.', 'error')
+                return redirect(url_for('auth.login'))
+                
             login_user(usuario)
             flash('Sesión iniciada correctamente.', 'success')
             return redirect(url_for('auth.index'))

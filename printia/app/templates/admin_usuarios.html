@@ -1,0 +1,525 @@
+{% extends "dashboard_layout.html" %}
+
+{% block title %}Usuarios - PrintIA Solutions{% endblock %}
+
+{% block dashboard_content %}
+<div class="admin-dashboard admin-dashboard--full">
+    <div class="welcome-header welcome-header--wide flex-header">
+        <div>
+            <h2 class="dashboard-title">Gestión de Usuarios 👥</h2>
+            <p class="dashboard-subtitle">Administra los usuarios registrados y sus estados.</p>
+        </div>
+    </div>
+
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Registro</th>
+                    <th>Plan</th>
+                    <th>Expiración</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr class="{% if not u.activo %}row-inactive{% endif %}">
+                    <td>#{{ u.id_usuario }}</td>
+                    <td>
+                        <div class="user-cell">
+                            {% if u.imagen %}
+                            <img src="{{ url_for('static', filename='uploads/avatars/' ~ u.imagen) }}" class="user-avatar" alt="Avatar">
+                            {% else %}
+                            <div class="user-avatar user-avatar--placeholder">{{ u.nombre_usuario[0]|upper }}</div>
+                            {% endif %}
+                            <span class="user-name">{{ u.nombre_usuario }}</span>
+                        </div>
+                    </td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.fecha_registro.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        {% if u.es_pro %}
+                            <span class="badge badge--pro">PRO</span>
+                        {% else %}
+                            <span class="badge badge--gratis">Gratis</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.es_pro and u.suscripcion_activa %}
+                            {{ u.suscripcion_activa.fecha_fin.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.es_admin %}
+                            <span class="badge badge--admin">Admin</span>
+                        {% else %}
+                            <span class="badge badge--usuario">Usuario</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.activo %}
+                            <span class="badge badge--activo">Activo</span>
+                        {% else %}
+                            <span class="badge badge--inactivo">Baja</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button type="button" class="btn-action btn-edit" onclick="openEditModal({{ u.id_usuario }}, '{{ u.nombre_usuario }}', '{{ u.email }}', {{ 'true' if u.es_admin else 'false' }})">✏️ Editar</button>
+                            <button type="button" class="btn-action btn-facturas" onclick="openFacturasModal({{ u.id_usuario }}, '{{ u.nombre_usuario }}')">📄 Facturas</button>
+                            {% if u.id_usuario != current_user.id_usuario %}
+                            <form action="{{ url_for('main.baja_usuario', id_usuario=u.id_usuario) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que deseas {% if u.activo %}dar de baja{% else %}reactivar{% endif %} a este usuario?');">
+                                <button type="submit" class="btn-action {% if u.activo %}btn-delete{% else %}btn-reactivate{% endif %}">
+                                    {% if u.activo %}❌ Baja{% else %}✅ Reactivar{% endif %}
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Edit -->
+<div id="editModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <h3 class="modal-title">Editar Usuario</h3>
+        <form id="editForm" method="POST" action="">
+            <div class="form-group">
+                <label class="form-label">Nombre de Usuario</label>
+                <input type="text" id="edit_nombre" name="nombre_usuario" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" id="edit_email" name="email" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nueva Contraseña <span style="font-weight: normal; color: #94a3b8; font-size: 0.8rem;">(Dejar en blanco para mantener la actual)</span></label>
+                <div class="password-wrapper">
+                    <input type="password" id="edit_password" name="nueva_password" class="form-input" placeholder="••••••••">
+                    <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('edit_password')">
+                        <svg id="eye_open_icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg id="eye_closed_icon" style="display: none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group toggle-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="edit_admin" name="es_admin" value="true">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="edit_admin" class="form-label mb-0" style="cursor: pointer; font-weight: 500; color: #334155;">Otorgar privilegios de Administrador</label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Facturas -->
+<div id="facturasModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 750px;">
+        <h3 class="modal-title" style="margin-bottom: 1rem;">Facturas de <span id="facturas_nombre_usuario" style="color: #E64D85;"></span></h3>
+        <div id="facturas_loading" style="text-align:center; padding: 20px; color: #64748b; font-weight: 600;">Cargando...</div>
+        <div id="facturas_content">
+            <table class="admin-table" id="facturas_table" style="display:none; width: 100%; font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th style="padding: 0.75rem;">Fecha</th>
+                        <th style="padding: 0.75rem;">Detalle</th>
+                        <th style="padding: 0.75rem;">Monto</th>
+                        <th style="padding: 0.75rem;">Transacción</th>
+                        <th style="padding: 0.75rem; text-align: center;">Descarga</th>
+                    </tr>
+                </thead>
+                <tbody id="facturas_tbody">
+                </tbody>
+            </table>
+            <p id="no_facturas_msg" style="display:none; text-align:center; color: #64748b; margin-top: 20px; font-weight: 500;">Este usuario no tiene facturas registradas.</p>
+        </div>
+        <div class="modal-actions" style="margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeFacturasModal()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, nombre, email, is_admin) {
+    document.getElementById('edit_nombre').value = nombre;
+    document.getElementById('edit_email').value = email;
+    
+    // Limpiar campo de password y resetear vista
+    var passInput = document.getElementById('edit_password');
+    passInput.value = '';
+    passInput.type = 'password';
+    document.getElementById('eye_open_icon').style.display = 'block';
+    document.getElementById('eye_closed_icon').style.display = 'none';
+
+    document.getElementById('edit_admin').checked = is_admin;
+    
+    var form = document.getElementById('editForm');
+    form.action = "{{ url_for('main.admin_usuarios') }}/" + id + "/editar";
+    
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const eyeOpen = document.getElementById('eye_open_icon');
+    const eyeClosed = document.getElementById('eye_closed_icon');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeOpen.style.display = 'none';
+        eyeClosed.style.display = 'block';
+    } else {
+        input.type = 'password';
+        eyeOpen.style.display = 'block';
+        eyeClosed.style.display = 'none';
+    }
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+function openFacturasModal(id, nombre) {
+    document.getElementById('facturas_nombre_usuario').textContent = nombre;
+    document.getElementById('facturasModal').style.display = 'flex';
+    document.getElementById('facturas_loading').style.display = 'block';
+    document.getElementById('facturas_table').style.display = 'none';
+    document.getElementById('no_facturas_msg').style.display = 'none';
+    
+    fetch("{{ url_for('main.admin_usuarios') }}/" + id + "/facturas")
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('facturas_loading').style.display = 'none';
+            if (data.error) {
+                alert(data.error);
+                closeFacturasModal();
+                return;
+            }
+            
+            var tbody = document.getElementById('facturas_tbody');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                document.getElementById('no_facturas_msg').style.display = 'block';
+            } else {
+                document.getElementById('facturas_table').style.display = 'table';
+                data.forEach(function(f) {
+                    var tr = document.createElement('tr');
+                    var downloadUrl = "{{ url_for('main.descargar_factura', id_factura=99999999) }}".replace('99999999', f.id_factura);
+                    tr.innerHTML = `
+                        <td style="padding: 0.75rem;">${f.fecha}</td>
+                        <td style="padding: 0.75rem;">${f.detalle}</td>
+                        <td style="padding: 0.75rem; font-weight: 700;">$${f.monto}</td>
+                        <td style="padding: 0.75rem; font-family: monospace; font-size: 0.8rem;">${f.transaction_id}</td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <a href="${downloadUrl}" class="btn-action btn-edit" style="text-decoration: none; padding: 0.35rem 0.65rem; font-size: 0.8rem;" title="Descargar PDF">⬇️ PDF</a>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        })
+        .catch(error => {
+            document.getElementById('facturas_loading').style.display = 'none';
+            alert('Error al cargar facturas.');
+            console.error('Error:', error);
+        });
+}
+
+function closeFacturasModal() {
+    document.getElementById('facturasModal').style.display = 'none';
+}
+</script>
+
+<style>
+.admin-dashboard--full {
+    width: 100%;
+    max-width: 1600px !important;
+    padding: 1rem 2rem;
+    align-self: flex-start;
+}
+.welcome-header--wide {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 2rem;
+}
+.flex-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.admin-table-container {
+    background: white;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0,0,0,0.03);
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.admin-table th {
+    text-align: center;
+    padding: 1rem;
+    color: #64748b;
+    font-weight: 600;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.row-inactive td {
+    background-color: #f8fafc;
+    color: #94a3b8;
+}
+
+.user-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-avatar--placeholder {
+    background: #e2e8f0;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.badge {
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge--pro { background: #FAF5FF; color: #7C3AED; }
+.badge--gratis { background: #f1f5f9; color: #64748b; }
+.badge--admin { background: #E0F2FE; color: #0284C7; }
+.badge--usuario { background: #F0FDF4; color: #16A34A; }
+.badge--activo { background: #dcfce7; color: #15803d; }
+.badge--inactivo { background: #fee2e2; color: #b91c1c; }
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-action {
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn-edit { background: white; color: #475569; border: 1px solid #e2e8f0; }
+.btn-edit:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+.btn-facturas { background: #eff6ff; color: #3b82f6; border: 1px solid #dbeafe; }
+.btn-facturas:hover { background: #dbeafe; border-color: #bfdbfe; }
+
+.btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; width: 110px; }
+.btn-delete:hover { background: #fee2e2; border-color: #fecaca; }
+
+.btn-reactivate { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; width: 110px; }
+.btn-reactivate:hover { background: #dcfce7; border-color: #bbf7d0; }
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 1.25rem;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #1e293b;
+}
+
+.form-group { margin-bottom: 1.25rem; }
+.form-label { display: block; font-size: 0.9rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem; }
+.mb-0 { margin-bottom: 0 !important; }
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+.form-input:focus { border-color: #E64D85; outline: none; box-shadow: 0 0 0 3px rgba(230,77,133,0.1); }
+
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.password-wrapper .form-input {
+    padding-right: 2.75rem;
+}
+.btn-toggle-password {
+    position: absolute;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+.btn-toggle-password:hover {
+    color: #E64D85;
+}
+
+.toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #f8fafc;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #cbd5e1;
+    transition: .3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px; width: 18px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #E64D85;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btn-secondary { background: #f1f5f9; color: #475569; }
+.btn-secondary:hover { background: #e2e8f0; }
+
+.btn-primary { background: #E64D85; color: white; }
+.btn-primary:hover { background: #d43b72; }
+
+/* Sobreescribir el centrado del dashboard-content */
+.dashboard-content { align-items: flex-start !important; }
+</style>
+{% endblock %}

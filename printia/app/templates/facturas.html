@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Facturas - PrintIA Solutions{% endblock %}
+
+{% block content %}
+<main class="page-container" style="display: flex; justify-content: center; min-height: 70vh;">
+    <div class="perfil-card" style="max-width: 800px; width: 100%;">
+        <div class="perfil-header" style="margin-bottom: 30px;">
+            <h1 class="perfil-name">Historial de Facturas</h1>
+            <p class="perfil-email">Aquí puedes ver y descargar tus comprobantes de pago.</p>
+        </div>
+
+        <div class="perfil-section">
+            {% if facturas %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--color-navbar-text);">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--color-navbar-bg);">
+                            <th style="padding: 12px 8px;">Fecha</th>
+                            <th style="padding: 12px 8px;">Detalle</th>
+                            <th style="padding: 12px 8px;">Monto</th>
+                            <th style="padding: 12px 8px; text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for factura in facturas %}
+                        <tr style="border-bottom: 1px solid var(--color-navbar-bg);">
+                            <td style="padding: 12px 8px;">{{ factura.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td style="padding: 12px 8px;">{{ factura.detalle }}</td>
+                            <td style="padding: 12px 8px;">${{ "%.2f"|format(factura.monto) }} ARS</td>
+                            <td style="padding: 12px 8px; text-align: right;">
+                                <a href="{{ url_for('main.descargar_factura', id_factura=factura.id_factura) }}" class="btn btn--secondary" style="font-size: 0.85rem; padding: 6px 12px;">Descargar PDF</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--color-navbar-text); margin: 40px 0;">No tienes facturas disponibles.</p>
+            {% endif %}
+        </div>
+
+        <div class="perfil-actions">
+            <a href="{{ url_for('main.perfil') }}" class="btn btn--secondary btn--large">Volver al Perfil</a>
+        </div>
+    </div>
+</main>
+{% endblock %}

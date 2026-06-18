@@ -14,11 +14,13 @@ class Usuario(UserMixin, db.Model):
     fecha_registro = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
     es_admin = db.Column(db.Boolean, default=False, nullable=False)
     imagen = db.Column(db.String(255), nullable=True)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
     
     # Relaciones
     modelos = db.relationship('Modelo', backref='creador', lazy=True)
     suscripciones = db.relationship('Suscripcion', backref='usuario', lazy=True)
     valoraciones = db.relationship('Valoracion', backref='usuario', lazy=True)
+    facturas = db.relationship('Factura', backref='usuario', lazy=True, cascade="all, delete-orphan")
 
     @property
     def total_generados(self):
@@ -42,6 +44,10 @@ class Usuario(UserMixin, db.Model):
     
     def get_id(self):
         return str(self.id_usuario)
+
+    @property
+    def is_active(self):
+        return self.activo
     
     @property
     def es_pro(self):
@@ -120,6 +126,16 @@ class Valoracion(db.Model):
     puntuacion = db.Column(db.Integer, nullable=False)
     comentario = db.Column(db.String(255), nullable=True)
     fecha = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+class Factura(db.Model):
+    __tablename__ = 'facturas'
+
+    id_factura = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id_usuario', ondelete='RESTRICT', onupdate='CASCADE'), nullable=False)
+    monto = db.Column(db.Numeric(10, 2), nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
+    detalle = db.Column(db.String(255), nullable=False)
+    transaction_id = db.Column(db.String(255), nullable=False, unique=True)
 
 @login_manager.user_loader
 def load_user(user_id):

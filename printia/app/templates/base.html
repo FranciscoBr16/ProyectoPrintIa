@@ -28,13 +28,20 @@
             <li><a href="{{ url_for('main.explorar') }}" class="navbar__link {% if request.endpoint == 'main.explorar' %}navbar__link--active{% endif %}">Explorar</a></li>
             <li><a href="{{ url_for('main.planes') }}" class="navbar__link {% if request.endpoint == 'main.planes' %}navbar__link--active{% endif %}">Planes</a></li>
             <li><a href="{{ url_for('main.como_funciona') }}" class="navbar__link {% if request.endpoint == 'main.como_funciona' %}navbar__link--active{% endif %}">Como funciona</a></li>
-            {% if current_user.is_authenticated and current_user.es_admin %}
-                <li><a href="{{ url_for('main.admin_dashboard') }}" class="navbar__link {% if request.endpoint == 'main.admin_dashboard' %}navbar__link--active{% endif %}">Métricas</a></li>
-            {% endif %}
         </ul>
 
         {% if current_user.is_authenticated %}
         <div class="navbar__user">
+            {% if current_user.es_admin %}
+            <div class="navbar__dropdown" style="margin-right: 8px;">
+                <span class="navbar__link admin-label" style="padding: 0 12px; height: auto;">Admin ▾</span>
+                <ul class="navbar__dropdown-menu" style="right: 0; left: auto; top: calc(100% + 12px); border-radius: 12px;">
+                    <li><a href="{{ url_for('main.admin_dashboard') }}" class="dropdown-link">Métricas</a></li>
+                    <li><a href="{{ url_for('main.admin_usuarios') }}" class="dropdown-link">Usuarios</a></li>
+                </ul>
+            </div>
+            {% endif %}
+            
             <div class="navbar__avatar">
                 {% if current_user.avatar_url() %}
                     <img src="{{ current_user.avatar_url() }}" alt="{{ current_user.nombre_usuario }}">
