@@ -73,11 +73,7 @@ class Modelo(db.Model):
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     meshy_task_id = db.Column(db.String(255), nullable=True) # ID de la tarea en Meshy para edición/rigging
     feedback_ia = db.Column(db.Integer, default=0, nullable=True) # 0: sin feedback, 1: aprobado, -1: desaprobado
-    
-    # Dimensiones en cm
-    dim_x = db.Column(db.Float, default=9.0)
-    dim_y = db.Column(db.Float, default=3.0)
-    dim_z = db.Column(db.Float, default=3.0)
+
 
     # Relaciones
     metricas = db.relationship('Metrica', backref='modelo', lazy=True)
