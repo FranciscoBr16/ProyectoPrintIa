@@ -70,23 +70,49 @@ def generador():
 @main_bp.route('/galeria')
 @login_required
 def galeria():
-    modelos = Modelo.query.filter_by(id_usuario=current_user.id_usuario).order_by(Modelo.fecha_creacion.desc()).all()
-    return render_template('galeria.html', modelos=modelos)
+    q = request.args.get('q', '')
+    sort_by = request.args.get('sort', 'fecha_desc')
+
+    query = Modelo.query.filter_by(id_usuario=current_user.id_usuario)
+
+    if q:
+        query = query.filter(Modelo.titulo.like(f'%{q}%'))
+
+    if sort_by == 'fecha_asc':
+        query = query.order_by(Modelo.fecha_creacion.asc())
+    elif sort_by == 'descargas':
+        query = query.outerjoin(Metrica).order_by(db.desc(Metrica.total_descargas))
+    elif sort_by == 'valoracion':
+        query = query.outerjoin(Valoracion).group_by(Modelo.id_modelo).order_by(db.desc(func.avg(Valoracion.puntuacion)))
+    else:
+        query = query.order_by(Modelo.fecha_creacion.desc())
+
+    modelos = query.all()
+    return render_template('galeria.html', modelos=modelos, search_query=q, current_sort=sort_by)
 
 @main_bp.route('/explorar')
 def explorar():
     q = request.args.get('q', '')
+    sort_by = request.args.get('sort', 'fecha_desc')
+
+    query = Modelo.query.filter_by(es_publico=True)
+
     if q:
         # Buscar en título o prompt si hay una consulta
-        modelos = Modelo.query.filter(
-            Modelo.es_publico == True,
-            (Modelo.titulo.like(f'%{q}%')) | (Modelo.prompt_texto.like(f'%{q}%'))
-        ).order_by(Modelo.fecha_creacion.desc()).all()
+        query = query.filter((Modelo.titulo.like(f'%{q}%')) | (Modelo.prompt_texto.like(f'%{q}%')))
+
+    if sort_by == 'fecha_asc':
+        query = query.order_by(Modelo.fecha_creacion.asc())
+    elif sort_by == 'descargas':
+        query = query.outerjoin(Metrica).order_by(db.desc(Metrica.total_descargas))
+    elif sort_by == 'valoracion':
+        query = query.outerjoin(Valoracion).group_by(Modelo.id_modelo).order_by(db.desc(func.avg(Valoracion.puntuacion)))
     else:
-        # Mostrar todos los públicos por defecto
-        modelos = Modelo.query.filter_by(es_publico=True).order_by(Modelo.fecha_creacion.desc()).all()
+        query = query.order_by(Modelo.fecha_creacion.desc())
+
+    modelos = query.all()
     
-    return render_template('explorar.html', modelos=modelos, search_query=q)
+    return render_template('explorar.html', modelos=modelos, search_query=q, current_sort=sort_by)
 
 @main_bp.route('/generar', methods=['POST'])
 @login_required
