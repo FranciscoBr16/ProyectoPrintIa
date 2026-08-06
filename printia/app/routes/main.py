@@ -149,6 +149,7 @@ def generar():
     payload = {
         "mode": "preview",
         "prompt": prompt,
+        "ai_model": "meshy-6",
         "target_formats": ["stl", "glb"]
     }
     
@@ -157,6 +158,8 @@ def generar():
 
     # Actualizar el payload con el prompt mejorado
     payload['prompt'] = prompt_mejorado
+    print(f"[PrintIA] Prompt original: {prompt}")
+    print(f"[PrintIA] Prompt mejorado ({len(prompt_mejorado)} chars, IA={fue_mejorado_por_ia}): {prompt_mejorado}")
 
     try:
         response = requests.post('https://api.meshy.ai/openapi/v2/text-to-3d', headers=headers, json=payload)

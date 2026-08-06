@@ -326,59 +326,78 @@ def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
 def mejorar_prompt_con_ia(prompt_usuario):
     """
     Usa Gemini Flash para transformar el prompt del usuario en un prompt técnico
-    optimizado para generar modelos 3D imprimibles en FDM con Meshy AI.
-    Si la llamada a Gemini falla, devuelve el prompt original con sufijo técnico.
+    optimizado para Meshy AI text-to-3D.
+    
+    IMPORTANTE: Meshy tiene un límite de 600 caracteres para el prompt.
+    El prompt mejorado se trunca inteligentemente si excede ese límite.
 
     Retorna una tupla: (prompt_mejorado: str, fue_mejorado: bool)
     """
+    MESHY_CHAR_LIMIT = 600
+
     SUFIJO_TECNICO = (
         ", 3D printable, single solid mesh, flat stable base, "
-        "no floating parts, no overhangs, manifold geometry, "
-        "optimized for FDM 3D printing"
+        "no floating parts, manifold geometry, FDM optimized"
     )
 
     gemini_key = os.getenv('GEMINI_API_KEY')
     if not gemini_key:
         print("GEMINI_API_KEY no configurada, usando sufijo técnico de fallback.")
-        return (prompt_usuario.strip() + SUFIJO_TECNICO, False)
+        fallback = prompt_usuario.strip() + SUFIJO_TECNICO
+        return (fallback[:MESHY_CHAR_LIMIT], False)
 
     system_instruction = (
-        "You are an expert in 3D modeling, text-to-3D AI generation (like Meshy), and FDM 3D printing. "
-        "Your task is to take a short user description and expand it into a HIGHLY DETAILED, extremely descriptive, "
-        "and precise English prompt optimized for Meshy AI text-to-3D generation and FDM printability.\n\n"
+        "You are an expert prompt engineer specialized in Meshy AI text-to-3D generation.\n\n"
 
-        "STEP 1 - STRICT ADHERENCE TO USER INTENT (CRITICAL):\n"
-        "1. NO UNREQUESTED OBJECTS: Focus 100% on the user's core request. DO NOT hallucinate extra props, scenery, backgrounds, humans, hands, or environments. If the user asks for a sword, generate ONLY the sword, not a warrior holding it. If the user asks for a hat, generate ONLY the hat, not a head wearing it.\n"
-        "2. MAINTAIN IDENTITY: You can expand the visual style and textures, but NEVER change the core function or fundamental identity of the object.\n"
-        "3. FRONT-LOAD SUBJECT: The very first sentence of your prompt MUST clearly declare the exact main object being modeled.\n\n"
+        "YOUR TASK: Transform the user's description into a concise, highly effective English prompt "
+        "for Meshy AI. The prompt MUST be under 580 characters (hard limit).\n\n"
 
-        "STEP 2 - EXTREME DETAIL EXPANSION (VISUALS & STYLE):\n"
-        "Expand the user's idea into a rich, vivid paragraph. Describe the exact shape, physical structure, surface texture, "
-        "style (e.g., realistic, low-poly, sci-fi, fantasy, cartoon), and specific features. "
-        "Include power keywords for 3D generation like: 'highly detailed', 'intricate design', 'masterpiece', "
-        "'professional 3D model', 'clear defined geometry', 'sharp details'. "
-        "Leave no visual detail to the imagination. The more descriptive you are about the geometry, the better Meshy will perform.\n\n"
+        "USE THIS EXACT FORMULA (in this order):\n"
+        "[SUBJECT] + [SHAPE & STRUCTURE] + [MATERIAL/TEXTURE] + [ART STYLE] + [3D PRINTING CONSTRAINTS]\n\n"
 
-        "STEP 3 - UNDERSTAND THE OBJECT'S PURPOSE:\n"
-        "1. HOLDERS & CONTAINERS (CRITICAL): If the object is meant to hold things (pen holder, vase, cup, bowl, pot), it MUST be shaped like a thick-walled container. You MUST explicitly describe it with strong phrases like 'a very deep, wide, empty cylindrical hole carved perfectly into the top center, extending downwards to form a cup-like hollow interior for holding items'. If you just say 'a castle', the AI will make a solid castle. You must explicitly say 'a thick-walled cup/container shaped like a castle on the outside'. NEVER describe the top as flat or closed. The empty cavity is the most important feature.\n"
-        "2. STANDS & MOUNTS (CRITICAL): If the object is a stand, mount, or holder for a device (like a phone stand), DO NOT generate the device itself! Describe ONLY the stand. To prevent AI from generating disconnected floating arms, you MUST describe stands as a 'single solid monolithic block', 'wedge shape', or 'thick unibody pyramid structure' with a groove or resting slot carved into it. Do not describe thin backrests or separate legs.\n\n"
+        "CRITICAL RULES:\n"
+        "1. SUBJECT FIRST: The very first words MUST name the exact object. "
+        "Example: 'A medieval broadsword...' not 'A highly detailed masterpiece of...'\n"
+        "2. ONLY THE REQUESTED OBJECT: If user says 'sword', output ONLY the sword. "
+        "NEVER add humans, hands, holders, pedestals, backgrounds, scenery, or any extra objects.\n"
+        "3. DESCRIBE GEOMETRY PRECISELY: Use concrete shape words (cylindrical, tapered, rounded, faceted, "
+        "angular, beveled, ribbed, grooved, flat-bottomed). The AI builds from geometry descriptions.\n"
+        "4. SPECIFIC MATERIALS: Use precise material names (brushed steel, cracked leather, polished obsidian, "
+        "weathered oak wood, matte ceramic) instead of vague words like 'nice' or 'beautiful'.\n"
+        "5. INCLUDE ART STYLE: Always specify one clear style (realistic, cartoon, low-poly, stylized, "
+        "hand-painted, cel-shaded, Pixar style, anime style, miniature figurine style).\n"
+        "6. END WITH 3D PRINT KEYWORDS: Always end with: 'single solid mesh, flat stable base, "
+        "no floating parts, watertight, FDM printable'.\n\n"
 
-        "STEP 4 - APPLY STRICT FDM PRINTABILITY RULES:\n"
-        "1. NO FLOATING PARTS: Every element must be physically fused. No disconnected pieces.\n"
-        "2. NATURAL STABILITY: The model must stand on its own geometry with a flat, stable bottom/base.\n"
-        "3. SELF-SUPPORTING: Avoid severe overhangs; slope angles upwards.\n"
-        "4. UNIFIED MANIFOLD MESH: One single coherent solid object.\n"
-        "5. THICK & STURDY: No paper-thin walls or fragile, spindly protrusions.\n"
-        "6. STATIC POSE: Characters/creatures must be in a grounded, stable, static pose.\n\n"
+        "SPECIAL CASES:\n"
+        "- CONTAINERS (vase, cup, holder, pot): MUST describe 'hollow interior with thick walls' explicitly. "
+        "Say 'thick-walled container shaped like [X] on the outside, with a deep open cavity on top'.\n"
+        "- STANDS/MOUNTS: Describe as 'single solid monolithic block/wedge with a groove'. "
+        "NEVER include the device it holds.\n"
+        "- CHARACTERS/CREATURES: Use 'static standing pose, feet flat on ground, arms close to body'. "
+        "For figurines add 'miniature figurine style'.\n"
+        "- FLAT/THIN OBJECTS (keychains, badges, coins, coasters): Describe as 'flat disc/rectangle, "
+        "X mm thick, with raised/embossed surface details'. Add 'no overhangs, printable flat on bed'.\n\n"
 
-        "Combine the adherence rules, extreme visual detail, and structural rules into a single, cohesive, highly descriptive English prompt. "
-        "Respond with ONLY the improved prompt text. No explanations, no quotes, no conversational filler."
+        "QUALITY KEYWORDS (use 2-3 max, not all): highly detailed, clean defined geometry, "
+        "sharp details, professional 3D model, intricate surface detail.\n\n"
+
+        "BAD PROMPT EXAMPLE (too vague, too long):\n"
+        "'A stunningly beautiful and absolutely magnificent masterpiece of a sword that is incredibly "
+        "amazing with wonderful details and epic proportions...'\n\n"
+
+        "GOOD PROMPT EXAMPLE (specific, structured, concise):\n"
+        "'A medieval broadsword with a cross-shaped guard and leather-wrapped grip. Double-edged steel blade "
+        "with a central fuller groove and pointed tip. Rounded pommel at the base. Realistic style, highly "
+        "detailed. Single solid mesh, flat stable base, no floating parts, watertight, FDM printable.'\n\n"
+
+        "OUTPUT: Return ONLY the improved prompt. No explanations, no quotes, no formatting."
     )
 
-    user_message = f"User description (may be in Spanish): \"{prompt_usuario}\""
+    user_message = f"User's object description (may be in Spanish): \"{prompt_usuario}\""
 
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-    headers = {"Content-Type": "application/json"}
+    headers_api = {"Content-Type": "application/json"}
     params = {"key": gemini_key}
     payload = {
         "systemInstruction": {
@@ -391,14 +410,14 @@ def mejorar_prompt_con_ia(prompt_usuario):
             }
         ],
         "generationConfig": {
-            "temperature": 0.6,
-            "maxOutputTokens": 400,
-            "topP": 0.9
+            "temperature": 0.3,
+            "maxOutputTokens": 200,
+            "topP": 0.85
         }
     }
 
     try:
-        response = requests.post(url, headers=headers, params=params, json=payload, timeout=15)
+        response = requests.post(url, headers=headers_api, params=params, json=payload, timeout=15)
         if response.status_code == 200:
             data = response.json()
             prompt_mejorado = (
@@ -408,13 +427,34 @@ def mejorar_prompt_con_ia(prompt_usuario):
                     .get("text", "")
                     .strip()
             )
+            # Limpiar comillas envolventes si Gemini las agrega
+            if prompt_mejorado.startswith('"') and prompt_mejorado.endswith('"'):
+                prompt_mejorado = prompt_mejorado[1:-1].strip()
+            if prompt_mejorado.startswith("'") and prompt_mejorado.endswith("'"):
+                prompt_mejorado = prompt_mejorado[1:-1].strip()
+
             if prompt_mejorado:
+                # Truncar inteligentemente al límite de Meshy (cortar en último punto o coma)
+                if len(prompt_mejorado) > MESHY_CHAR_LIMIT:
+                    truncated = prompt_mejorado[:MESHY_CHAR_LIMIT]
+                    # Buscar el último punto, coma o punto y coma para cortar limpiamente
+                    last_clean_break = max(
+                        truncated.rfind('. '),
+                        truncated.rfind(', '),
+                        truncated.rfind('; ')
+                    )
+                    if last_clean_break > MESHY_CHAR_LIMIT * 0.6:
+                        prompt_mejorado = truncated[:last_clean_break + 1].strip()
+                    else:
+                        prompt_mejorado = truncated.strip()
+                
                 return (prompt_mejorado, True)
         else:
             print(f"Error Gemini API ({response.status_code}): {response.text[:200]}")
     except Exception as e:
         print(f"Excepción al llamar a Gemini: {e}")
 
-    # Fallback: sufijo técnico directo
-    return (prompt_usuario.strip() + SUFIJO_TECNICO, False)
+    # Fallback: prompt original + sufijo técnico, respetando límite
+    fallback = prompt_usuario.strip() + SUFIJO_TECNICO
+    return (fallback[:MESHY_CHAR_LIMIT], False)
 
