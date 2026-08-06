@@ -298,6 +298,8 @@ def generar_recomendaciones_vision(ruta_imagen, prompt_modelo=""):
                     if count >= 7:
                         break
                     clean = re.sub(r'^[\-*\d.]+\s*', '', line).strip()
+                    # Remove any existing <li> or </li> tags to prevent nesting
+                    clean = re.sub(r'</?li>', '', clean, flags=re.IGNORECASE).strip()
                     if clean and len(clean) > 10:
                         html_recs += f"<li>{clean}</li>\n"
                         count += 1
