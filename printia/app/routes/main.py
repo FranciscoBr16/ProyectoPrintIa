@@ -72,6 +72,7 @@ def generador():
 def galeria():
     q = request.args.get('q', '')
     sort_by = request.args.get('sort', 'fecha_desc')
+    page = request.args.get('page', 1, type=int)
 
     query = Modelo.query.filter_by(id_usuario=current_user.id_usuario)
 
@@ -87,8 +88,9 @@ def galeria():
     else:
         query = query.order_by(Modelo.fecha_creacion.desc())
 
-    modelos = query.all()
-    return render_template('galeria.html', modelos=modelos, search_query=q, current_sort=sort_by)
+    paginacion = query.paginate(page=page, per_page=12, error_out=False)
+    modelos = paginacion.items
+    return render_template('galeria.html', modelos=modelos, paginacion=paginacion, search_query=q, current_sort=sort_by)
 
 @main_bp.route('/explorar')
 def explorar():

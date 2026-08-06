@@ -53,5 +53,41 @@
             </div>
         {% endif %}
     </div>
+
+    {% if paginacion.pages > 1 %}
+    <nav class="paginacion" style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 30px; flex-wrap: wrap;">
+        {% if paginacion.has_prev %}
+            <a href="{{ url_for('main.galeria', page=paginacion.prev_num, q=search_query, sort=current_sort) }}"
+               class="btn btn--secondary" style="padding: 8px 14px; font-size: 0.85rem; min-width: auto; border-radius: 8px;">
+                ← Anterior
+            </a>
+        {% endif %}
+
+        {% for p in paginacion.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+            {% if p %}
+                <a href="{{ url_for('main.galeria', page=p, q=search_query, sort=current_sort) }}"
+                   style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; text-decoration: none; transition: all 0.2s ease;
+                   {% if p == paginacion.page %}
+                       background: linear-gradient(135deg, #E64D85, #a855f7); color: #fff; box-shadow: 0 4px 12px rgba(230, 77, 133, 0.35);
+                   {% else %}
+                       background: #1C2333; color: #8C929D; border: 1px solid #2A3441;
+                   {% endif %}"
+                   onmouseover="{% if p != paginacion.page %}this.style.borderColor='#E64D85'; this.style.color='#E64D85';{% endif %}"
+                   onmouseout="{% if p != paginacion.page %}this.style.borderColor='#2A3441'; this.style.color='#8C929D';{% endif %}">
+                    {{ p }}
+                </a>
+            {% else %}
+                <span style="color: #555; font-size: 0.9rem; padding: 0 4px;">…</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if paginacion.has_next %}
+            <a href="{{ url_for('main.galeria', page=paginacion.next_num, q=search_query, sort=current_sort) }}"
+               class="btn btn--secondary" style="padding: 8px 14px; font-size: 0.85rem; min-width: auto; border-radius: 8px;">
+                Siguiente →
+            </a>
+        {% endif %}
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}
