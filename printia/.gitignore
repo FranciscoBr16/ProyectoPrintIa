@@ -6,3 +6,6 @@ app/static/uploads/avatars/*
 !app/static/uploads/avatars/.gitkeep
 app/static/uploads/modelos/*
 !app/static/uploads/modelos/.gitkeep
+app/static/uploads/thumbnails/*
+!app/static/uploads/thumbnails/.gitkeep
+thumbnails/

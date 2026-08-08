@@ -113,6 +113,12 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Paginación -->
+        <div id="paginationContainer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; flex-wrap: wrap; gap: 1rem;">
+            <span id="paginationInfo" style="color: #64748b; font-size: 0.875rem; font-weight: 500;"></span>
+            <div id="paginationButtons" style="display: flex; gap: 0.35rem; align-items: center;"></div>
+        </div>
     </div>
 </div>
 
@@ -299,15 +305,20 @@ function toggleSort(field) {
         }
     });
 
-    filterAndSort();
+    filterAndSort(true);
 }
 
-function filterAndSort() {
+const ITEMS_PER_PAGE = 10;
+let currentPage = 1;
+
+function filterAndSort(resetPage) {
+    if (resetPage) currentPage = 1;
+
     const searchInput = document.getElementById('searchUsuario');
     const filterSelect = document.getElementById('filterSelect');
     const tbody = document.getElementById('usuariosTbody');
     if (!tbody || !searchInput || !filterSelect) return;
-    
+
     const rows = Array.from(tbody.querySelectorAll('.user-row'));
     const searchTerm = searchInput.value.toLowerCase();
     const filterValue = filterSelect.value;
@@ -316,7 +327,7 @@ function filterAndSort() {
     let visibleRows = rows.filter(row => {
         const username = row.getAttribute('data-username');
         const matchesSearch = username.includes(searchTerm);
-        
+
         let matchesCategory = true;
         if (filterValue !== 'all') {
             const parts = filterValue.split('_');
@@ -327,13 +338,7 @@ function filterAndSort() {
             }
         }
 
-        if (matchesSearch && matchesCategory) {
-            row.style.display = '';
-            return true;
-        } else {
-            row.style.display = 'none';
-            return false;
-        }
+        return matchesSearch && matchesCategory;
     });
 
     // Ordenar
@@ -344,32 +349,89 @@ function filterAndSort() {
 
         let valA = a.getAttribute('data-' + currentSort.field);
         let valB = b.getAttribute('data-' + currentSort.field);
-        
+
         let comparison = 0;
         if (currentSort.field === 'id') {
             comparison = parseInt(valA) - parseInt(valB);
         } else {
             comparison = valA.localeCompare(valB);
         }
-        
+
         return currentSort.direction === 'asc' ? comparison : -comparison;
     });
 
+    // Paginación
+    const totalItems = visibleRows.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+
+    // Ocultar todas, mostrar solo la página actual
+    rows.forEach(row => row.style.display = 'none');
+    visibleRows.slice(start, end).forEach(row => row.style.display = '');
+
     // Re-adjuntar al DOM para mantener el orden
     visibleRows.forEach(row => tbody.appendChild(row));
+
+    // Renderizar paginación
+    renderPagination(totalItems, totalPages);
+}
+
+function renderPagination(totalItems, totalPages) {
+    const info = document.getElementById('paginationInfo');
+    const btns = document.getElementById('paginationButtons');
+    if (!info || !btns) return;
+
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const showing = Math.min(start + ITEMS_PER_PAGE, totalItems);
+    info.textContent = totalItems === 0
+        ? 'Sin resultados'
+        : `Mostrando ${start + 1}–${showing} de ${totalItems} usuarios`;
+
+    let html = '';
+    // Anterior
+    html += `<button class="btn-page${currentPage === 1 ? ' btn-page--disabled' : ''}" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">‹</button>`;
+
+    // Números de página con ellipsis
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+            pages.push(i);
+        } else if (pages[pages.length - 1] !== '...') {
+            pages.push('...');
+        }
+    }
+    pages.forEach(p => {
+        if (p === '...') {
+            html += `<span style="color:#94a3b8;padding:0 0.15rem;">…</span>`;
+        } else {
+            html += `<button class="btn-page${p === currentPage ? ' btn-page--active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+        }
+    });
+
+    // Siguiente
+    html += `<button class="btn-page${currentPage === totalPages ? ' btn-page--disabled' : ''}" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">›</button>`;
+
+    btns.innerHTML = html;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    filterAndSort(false);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchUsuario');
     const filterSelect = document.getElementById('filterSelect');
-    
+
     if (searchInput) {
-        searchInput.addEventListener('input', filterAndSort);
+        searchInput.addEventListener('input', function() { filterAndSort(true); });
     }
     if (filterSelect) {
-        filterSelect.addEventListener('change', filterAndSort);
+        filterSelect.addEventListener('change', function() { filterAndSort(true); });
     }
-    
+
     const tbody = document.getElementById('usuariosTbody');
     if (tbody) {
         const rows = Array.from(tbody.querySelectorAll('.user-row'));
@@ -385,9 +447,9 @@ document.addEventListener('DOMContentLoaded', function() {
             th.classList.add('active');
         }
     });
-    
+
     // Ejecutar filtro inicial
-    filterAndSort();
+    filterAndSort(true);
 });
 </script>
 
@@ -702,5 +764,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Sobreescribir el centrado del dashboard-content */
 .dashboard-content { align-items: flex-start !important; }
+
+/* Paginación */
+.btn-page {
+    background: white;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    padding: 0.4rem 0.7rem;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1;
+}
+.btn-page:hover:not(.btn-page--disabled):not(.btn-page--active) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+.btn-page--active {
+    background: #E64D85;
+    color: white;
+    border-color: #E64D85;
+}
+.btn-page--disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
 </style>
 {% endblock %}
