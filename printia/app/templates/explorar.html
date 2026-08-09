@@ -52,5 +52,71 @@
             </div>
         {% endif %}
     </div>
+
+    {% if pagination and pagination.pages > 1 %}
+    <div class="pagination-wrapper">
+        <div class="pagination-info">
+            Mostrando {{ ((pagination.page - 1) * pagination.per_page) + 1 }}–{{ [pagination.page * pagination.per_page, pagination.total] | min }} de {{ pagination.total }} modelos
+        </div>
+        <nav class="pagination" aria-label="Paginación">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('main.explorar', page=pagination.prev_num, q=search_query, sort=current_sort) }}" class="pagination__btn pagination__btn--nav" aria-label="Página anterior">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <span>Anterior</span>
+            </a>
+            {% else %}
+            <span class="pagination__btn pagination__btn--nav pagination__btn--disabled" aria-disabled="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <span>Anterior</span>
+            </span>
+            {% endif %}
+
+            <div class="pagination__pages">
+                {% set pages_to_show = [] %}
+                {% if pagination.pages <= 7 %}
+                    {% for p in range(1, pagination.pages + 1) %}
+                        {% set _ = pages_to_show.append(p) %}
+                    {% endfor %}
+                {% else %}
+                    {% set _ = pages_to_show.append(1) %}
+                    {% if pagination.page > 3 %}
+                        {% set _ = pages_to_show.append('...') %}
+                    {% endif %}
+                    {% for p in range([pagination.page - 1, 2] | max, [pagination.page + 2, pagination.pages] | min) %}
+                        {% set _ = pages_to_show.append(p) %}
+                    {% endfor %}
+                    {% if pagination.page < pagination.pages - 2 %}
+                        {% set _ = pages_to_show.append('...') %}
+                    {% endif %}
+                    {% if pagination.pages not in pages_to_show %}
+                        {% set _ = pages_to_show.append(pagination.pages) %}
+                    {% endif %}
+                {% endif %}
+
+                {% for p in pages_to_show %}
+                    {% if p == '...' %}
+                        <span class="pagination__ellipsis">…</span>
+                    {% elif p == pagination.page %}
+                        <span class="pagination__btn pagination__btn--active" aria-current="page">{{ p }}</span>
+                    {% else %}
+                        <a href="{{ url_for('main.explorar', page=p, q=search_query, sort=current_sort) }}" class="pagination__btn">{{ p }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            {% if pagination.has_next %}
+            <a href="{{ url_for('main.explorar', page=pagination.next_num, q=search_query, sort=current_sort) }}" class="pagination__btn pagination__btn--nav" aria-label="Página siguiente">
+                <span>Siguiente</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </a>
+            {% else %}
+            <span class="pagination__btn pagination__btn--nav pagination__btn--disabled" aria-disabled="true">
+                <span>Siguiente</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </span>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

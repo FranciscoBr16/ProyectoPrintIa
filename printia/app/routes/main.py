@@ -112,9 +112,11 @@ def explorar():
     else:
         query = query.order_by(Modelo.fecha_creacion.desc())
 
-    modelos = query.all()
+    page = request.args.get('page', 1, type=int)
+    pagination = query.paginate(page=page, per_page=12, error_out=False)
+    modelos = pagination.items
     
-    return render_template('explorar.html', modelos=modelos, search_query=q, current_sort=sort_by)
+    return render_template('explorar.html', modelos=modelos, pagination=pagination, search_query=q, current_sort=sort_by)
 
 @main_bp.route('/generar', methods=['POST'])
 @login_required
