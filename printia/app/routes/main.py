@@ -95,7 +95,7 @@ def galeria():
 @main_bp.route('/explorar')
 def explorar():
     q = request.args.get('q', '')
-    sort_by = request.args.get('sort', 'fecha_desc')
+    sort_by = request.args.get('sort', 'descargas')
 
     query = Modelo.query.filter_by(es_publico=True)
 
@@ -105,12 +105,13 @@ def explorar():
 
     if sort_by == 'fecha_asc':
         query = query.order_by(Modelo.fecha_creacion.asc())
-    elif sort_by == 'descargas':
-        query = query.outerjoin(Metrica).order_by(db.desc(Metrica.total_descargas))
-    elif sort_by == 'valoracion':
-        query = query.outerjoin(Valoracion).group_by(Modelo.id_modelo).order_by(db.desc(func.avg(Valoracion.puntuacion)))
-    else:
+    elif sort_by == 'fecha_desc':
         query = query.order_by(Modelo.fecha_creacion.desc())
+    elif sort_by == 'valoracion':
+        query = query.outerjoin(Valoracion).group_by(Modelo.id_modelo).order_by(db.desc(func.avg(Valoracion.puntuacion)), Modelo.fecha_creacion.asc())
+    else:
+        # Por defecto ('descargas'): ordenado por total de descargas de forma descendente, y por fecha de creación ascendente en caso de empate
+        query = query.outerjoin(Metrica).order_by(db.desc(func.coalesce(Metrica.total_descargas, 0)), Modelo.fecha_creacion.asc())
 
     page = request.args.get('page', 1, type=int)
     pagination = query.paginate(page=page, per_page=12, error_out=False)
@@ -736,18 +737,20 @@ def checkout_receipt():
 
 def distribucion_tiempos():
     rangos = [
-        {"label": "< 20s", "min": 0, "max": 20},
-        {"label": "20-30s", "min": 20, "max": 30},
-        {"label": "30-40s", "min": 30, "max": 40},
-        {"label": "40-50s", "min": 40, "max": 50},
-        {"label": "50-60s", "min": 50, "max": 60},
-        {"label": "60-70s", "min": 60, "max": 70},
-        {"label": "70-80s", "min": 70, "max": 80},
-        {"label": "80-90s", "min": 80, "max": 90},
-        {"label": "90-100s", "min": 90, "max": 100},
-        {"label": "100-110s", "min": 100, "max": 110},
-        {"label": "110-120s", "min": 110, "max": 120},
-        {"label": "> 120s", "min": 120, "max": 99999}
+        {"label": "< 30s", "min": 0, "max": 30},
+        {"label": "30-45s", "min": 30, "max": 45},
+        {"label": "45-60s", "min": 45, "max": 60},
+        {"label": "60-75s", "min": 60, "max": 75},
+        {"label": "75-90s", "min": 75, "max": 90},
+        {"label": "90-105s", "min": 90, "max": 105},
+        {"label": "105-120s", "min": 105, "max": 120},
+        {"label": "120-135s", "min": 120, "max": 135},
+        {"label": "135-150s", "min": 135, "max": 150},
+        {"label": "150-165s", "min": 150, "max": 165},
+        {"label": "165-180s", "min": 165, "max": 180},
+        {"label": "180-195s", "min": 180, "max": 195},
+        {"label": "195-200s", "min": 195, "max": 200},
+        {"label": "> 200s", "min": 200, "max": 99999}
     ]
     resultados = []
     for r in rangos:
@@ -836,6 +839,7 @@ def admin_dashboard():
 
     likes = Modelo.query.filter_by(feedback_ia=1).count()
     dislikes = Modelo.query.filter_by(feedback_ia=-1).count()
+    sin_calificacion = Modelo.query.filter((Modelo.feedback_ia == 0) | (Modelo.feedback_ia.is_(None))).count()
     
     total_usuarios = Usuario.query.count()
     total_modelos = Modelo.query.count()
@@ -871,6 +875,7 @@ def admin_dashboard():
                            errores=errores,
                            likes=likes,
                            dislikes=dislikes,
+                           sin_calificacion=sin_calificacion,
                            con_recom=con_recom,
                            sin_recom=sin_recom)
 
@@ -1001,6 +1006,8 @@ def admin_usuarios():
     for u in usuarios:
         suscripcion_activa = next((s for s in u.suscripciones if s.estado == 'Activa'), None)
         u.suscripcion_activa = suscripcion_activa
+        u.total_modelos = len(u.modelos)
+        u.total_suscripciones = len(u.suscripciones)
         
     return render_template('admin_usuarios.html', usuarios=usuarios)
 

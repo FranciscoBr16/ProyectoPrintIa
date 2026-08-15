@@ -7,9 +7,9 @@
         <form action="{{ url_for('main.explorar') }}" method="GET" class="search-form" style="max-width: 650px;">
             <input type="text" name="q" placeholder="Buscar modelos..." value="{{ search_query }}" class="search-input">
             <select name="sort" class="search-input" style="flex: 0 1 auto; cursor: pointer; padding-right: 30px;">
+                <option value="descargas" {% if current_sort == 'descargas' %}selected{% endif %}>Más descargados</option>
                 <option value="fecha_desc" {% if current_sort == 'fecha_desc' %}selected{% endif %}>Más recientes</option>
                 <option value="fecha_asc" {% if current_sort == 'fecha_asc' %}selected{% endif %}>Más antiguos</option>
-                <option value="descargas" {% if current_sort == 'descargas' %}selected{% endif %}>Más descargados</option>
                 <option value="valoracion" {% if current_sort == 'valoracion' %}selected{% endif %}>Mejor valorados</option>
             </select>
             <button type="submit" class="btn btn--primary">Buscar</button>

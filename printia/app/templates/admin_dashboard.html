@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 6. Feedback
     new Chart(document.getElementById('chartFeedback'), {
         type: 'doughnut',
-        data: { labels: ['Likes', 'Dislikes'], datasets: [{ data: [{{ likes }}, {{ dislikes }}], backgroundColor: ['#E64D85', 'rgb(23, 27, 33)'] }] },
+        data: { labels: ['Likes', 'Dislikes', 'Sin calificación'], datasets: [{ data: [{{ likes }}, {{ dislikes }}, {{ sin_calificacion }}], backgroundColor: ['#2ecc71', '#e74c3c', '#95a5a6'] }] },
         options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
     });
 
