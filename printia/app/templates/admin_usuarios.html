@@ -198,14 +198,14 @@
         <h3 class="modal-title" style="margin-bottom: 1rem;">Facturas de <span id="facturas_nombre_usuario" style="color: #E64D85;"></span></h3>
         <div id="facturas_loading" style="text-align:center; padding: 20px; color: #64748b; font-weight: 600;">Cargando...</div>
         <div id="facturas_content">
-            <table class="admin-table" id="facturas_table" style="display:none; width: 100%; font-size: 0.85rem;">
+            <table class="admin-table" id="facturas_table" style="display:none; width: 100%; font-size: 0.95rem;">
                 <thead>
-                    <tr>
-                        <th style="padding: 0.75rem;">Fecha</th>
-                        <th style="padding: 0.75rem;">Detalle</th>
-                        <th style="padding: 0.75rem;">Monto</th>
-                        <th style="padding: 0.75rem;">Transacción</th>
-                        <th style="padding: 0.75rem; text-align: center;">Descarga</th>
+                    <tr style="border-bottom: 2px solid #e2e8f0;">
+                        <th style="padding: 1rem; color: #64748b; font-weight: 600;">Fecha</th>
+                        <th style="padding: 1rem; color: #64748b; font-weight: 600;">Detalle</th>
+                        <th style="padding: 1rem; color: #64748b; font-weight: 600;">Monto</th>
+                        <th style="padding: 1rem; color: #64748b; font-weight: 600;">Transacción</th>
+                        <th style="padding: 1rem; text-align: center; color: #64748b; font-weight: 600;">Descarga</th>
                     </tr>
                 </thead>
                 <tbody id="facturas_tbody">
@@ -306,13 +306,18 @@ function openFacturasModal(id, nombre) {
                 data.forEach(function(f) {
                     var tr = document.createElement('tr');
                     var downloadUrl = "{{ url_for('main.descargar_factura', id_factura=99999999) }}".replace('99999999', f.id_factura);
+                    tr.style.borderBottom = '1px solid #f1f5f9';
                     tr.innerHTML = `
-                        <td style="padding: 0.75rem;">${f.fecha}</td>
-                        <td style="padding: 0.75rem;">${f.detalle}</td>
-                        <td style="padding: 0.75rem; font-weight: 700;">$${f.monto}</td>
-                        <td style="padding: 0.75rem; font-family: monospace; font-size: 0.8rem;">${f.transaction_id}</td>
-                        <td style="padding: 0.75rem; text-align: center;">
-                            <a href="${downloadUrl}" class="btn-action btn-edit" style="text-decoration: none; padding: 0.35rem 0.65rem; font-size: 0.8rem;" title="Descargar PDF"><i class="fa-solid fa-file-pdf" style="color: #e74c3c; margin-right: 0.25rem;"></i> PDF</a>
+                        <td style="padding: 1.2rem 1rem; vertical-align: middle; color: #475569;">${f.fecha}</td>
+                        <td style="padding: 1.2rem 1rem; vertical-align: middle; font-weight: 600; color: #1e293b;">${f.detalle}</td>
+                        <td style="padding: 1.2rem 1rem; vertical-align: middle; font-weight: 700; color: #10b981; font-size: 1.05rem;">$${f.monto}</td>
+                        <td style="padding: 1.2rem 1rem; vertical-align: middle; max-width: 160px;">
+                            <div style="display: block; background-color: #f1f5f9; padding: 0.5rem; border-radius: 6px; font-family: monospace; font-size: 0.75rem; color: #475569; word-break: break-all; line-height: 1.4; box-sizing: border-box; text-align: center;">${f.transaction_id}</div>
+                        </td>
+                        <td style="padding: 1.2rem 1rem; vertical-align: middle; text-align: center;">
+                            <a href="${downloadUrl}" style="text-decoration: none; padding: 0.6rem 1.2rem; font-size: 0.9rem; font-weight: 600; background-color: #E64D85; color: white; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; box-shadow: 0 4px 6px -1px rgba(230,77,133,0.2);" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 8px -1px rgba(230,77,133,0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(230,77,133,0.2)';" title="Descargar Factura">
+                                <i class="fa-solid fa-download"></i> Descargar
+                            </a>
                         </td>
                     `;
                     tbody.appendChild(tr);
