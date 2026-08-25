@@ -535,6 +535,30 @@ a {
     color: var(--color-white);
 }
 
+.btn--danger {
+    background-color: #fee2e2;
+    color: #dc2626;
+    border: 2px solid #fecaca;
+}
+
+.btn--danger:hover {
+    background-color: #fecaca;
+    color: #b91c1c;
+    border-color: #f87171;
+}
+
+.btn--success {
+    background-color: #d1fae5;
+    color: #059669;
+    border: 2px solid #a7f3d0;
+}
+
+.btn--success:hover {
+    background-color: #a7f3d0;
+    color: #047857;
+    border-color: #6ee7b7;
+}
+
 .form-hint-inline {
     font-weight: 400;
     color: var(--color-navbar-text);

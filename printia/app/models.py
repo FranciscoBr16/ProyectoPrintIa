@@ -73,6 +73,7 @@ class Modelo(db.Model):
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     meshy_task_id = db.Column(db.String(255), nullable=True) # ID de la tarea en Meshy para edición/rigging
     feedback_ia = db.Column(db.Integer, default=0, nullable=True) # 0: sin feedback, 1: aprobado, -1: desaprobado
+    activo = db.Column(db.Boolean, default=True, nullable=False) # Baja lógica para moderación
 
 
     # Relaciones
@@ -122,6 +123,8 @@ class Valoracion(db.Model):
     puntuacion = db.Column(db.Integer, nullable=False)
     comentario = db.Column(db.String(255), nullable=True)
     fecha = db.Column(db.DateTime, default=datetime.datetime.utcnow, nullable=False)
+    activo = db.Column(db.Boolean, default=True, nullable=False) # Baja lógica para moderación
+
 
 class Factura(db.Model):
     __tablename__ = 'facturas'

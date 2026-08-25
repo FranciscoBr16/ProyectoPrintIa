@@ -97,7 +97,10 @@ def explorar():
     q = request.args.get('q', '')
     sort_by = request.args.get('sort', 'descargas')
 
-    query = Modelo.query.filter_by(es_publico=True)
+    if current_user.is_authenticated and current_user.es_admin:
+        query = Modelo.query.filter_by(es_publico=True)
+    else:
+        query = Modelo.query.filter_by(es_publico=True, activo=True)
 
     if q:
         # Buscar en título o prompt si hay una consulta
@@ -213,6 +216,11 @@ def modelo(id_modelo):
         flash('No tienes permiso para ver este modelo.', 'error')
         return redirect(url_for('main.galeria'))
         
+    if not modelo_obj.activo:
+        if not current_user.is_authenticated or (not current_user.es_admin and modelo_obj.id_usuario != current_user.id_usuario):
+            flash('Esta publicación ha sido dada de baja por un administrador.', 'error')
+            return redirect(url_for('main.explorar'))
+        
     generando = False
     error_generacion = False
     
@@ -297,7 +305,10 @@ def modelo(id_modelo):
             print(f"Error consultando Meshy: {e}")
             
     # Obtener comentarios/valoraciones ordenados del más antiguo al más nuevo
-    comentarios = Valoracion.query.filter_by(id_modelo=id_modelo).order_by(Valoracion.fecha.asc()).all()
+    if current_user.is_authenticated and current_user.es_admin:
+        comentarios = Valoracion.query.filter_by(id_modelo=id_modelo).order_by(Valoracion.fecha.asc()).all()
+    else:
+        comentarios = Valoracion.query.filter_by(id_modelo=id_modelo, activo=True).order_by(Valoracion.fecha.asc()).all()
             
     # Verificar si el usuario actual es PRO (suscripción activa)
     es_pro = current_user.es_pro
@@ -787,13 +798,49 @@ def get_datos_anuales():
             
     return {"labels": labels, "valores": valores}
 
+@main_bp.route('/admin/modelo/<int:id_modelo>/toggle', methods=['POST'])
+@login_required
+def admin_toggle_modelo(id_modelo):
+    if not current_user.es_admin:
+        flash('Acceso denegado.', 'error')
+        return redirect(url_for('main.dashboard'))
+    modelo = Modelo.query.get_or_404(id_modelo)
+    modelo.activo = not modelo.activo
+    db.session.commit()
+    flash(f"Modelo {'restaurado' if modelo.activo else 'dado de baja'} correctamente.", 'success')
+    return redirect(request.referrer or url_for('main.explorar'))
+
+@main_bp.route('/admin/comentario/<int:id_valoracion>/toggle', methods=['POST'])
+@login_required
+def admin_toggle_comentario(id_valoracion):
+    if not current_user.es_admin:
+        flash('Acceso denegado.', 'error')
+        return redirect(url_for('main.dashboard'))
+    val = Valoracion.query.get_or_404(id_valoracion)
+    val.activo = not val.activo
+    db.session.commit()
+    flash(f"Comentario {'restaurado' if val.activo else 'dado de baja'} correctamente.", 'success')
+    return redirect(request.referrer or url_for('main.dashboard'))
+
+@main_bp.route('/admin/moderacion')
+@login_required
+def admin_moderacion():
+    if not current_user.es_admin:
+        flash('Acceso denegado. Se requieren permisos de administrador.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Obtener contenido inactivo (dado de baja)
+    modelos_ocultos = Modelo.query.filter_by(activo=False).order_by(Modelo.fecha_creacion.desc()).all()
+    comentarios_ocultos = Valoracion.query.filter_by(activo=False).order_by(Valoracion.fecha.desc()).all()
+    
+    return render_template('admin_moderacion.html', modelos=modelos_ocultos, comentarios=comentarios_ocultos)
+
 @main_bp.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
     if not current_user.es_admin:
         flash('Acceso denegado. Se requieren permisos de administrador.', 'error')
         return redirect(url_for('main.dashboard'))
-    
     tiempos = db.session.query(
         func.avg(Metrica.duracion),
         func.max(Metrica.duracion),

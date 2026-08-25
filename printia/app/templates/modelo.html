@@ -35,8 +35,11 @@
                 <p>Sin modelo 3D asociado</p>
             </div>
         {% endif %}
-        <div class="visor-overlay-title">
-            <p>{{ modelo.titulo }}</p>
+        <div class="visor-overlay-title" style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+            <p style="margin: 0;">{{ modelo.titulo }}</p>
+            {% if not modelo.activo %}
+                <span style="background: rgba(255,0,0,0.8); color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">DADO DE BAJA</span>
+            {% endif %}
         </div>
 
         {% if current_user.id_usuario == modelo.id_usuario %}
@@ -246,6 +249,13 @@
     </div>
 
     <div class="visor-actions">
+        {% if current_user.is_authenticated and current_user.es_admin %}
+            <form action="{{ url_for('main.admin_toggle_modelo', id_modelo=modelo.id_modelo) }}" method="POST" style="width: 100%; margin-bottom: 10px; display: flex; justify-content: center;">
+                <button type="submit" class="btn btn--secondary {% if modelo.activo %}btn--danger{% else %}btn--success{% endif %}" style="padding: 6px 16px; font-size: 0.85rem;">
+                    {% if modelo.activo %}Dar de baja Modelo (Admin){% else %}Restaurar Modelo (Admin){% endif %}
+                </button>
+            </form>
+        {% endif %}
         {% if current_user.id_usuario == modelo.id_usuario %}
             <form action="{{ url_for('main.toggle_public', id_modelo=modelo.id_modelo) }}" method="POST" style="width: 100%;">
                 <button type="submit" class="btn btn--secondary btn--large" style="width: 100%;">
@@ -313,10 +323,13 @@
                                 </div>
                             {% endif %}
                         </div>
-                        <div class="comment-body" style="flex: 1;">
+                        <div class="comment-body" style="flex: 1; {% if not c.activo %}opacity: 0.6;{% endif %}">
                             <div class="comment-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span class="comment-author" style="font-weight: 700; color: #fff;">{{ c.usuario.nombre_usuario }}</span>
+                                    {% if not c.activo %}
+                                        <span style="background: rgba(255,0,0,0.8); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold;">OCULTO</span>
+                                    {% endif %}
                                     {% if c.id_usuario == modelo.id_usuario %}
                                         <span class="author-badge" style="background: rgba(230, 77, 133, 0.15); color: var(--color-primary); font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--color-primary); display: flex; align-items: center; gap: 4px; font-weight: 700; text-transform: uppercase;">
                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
@@ -335,7 +348,16 @@
                                 </div>
                             </div>
                             <p class="comment-content" style="color: #8C929D; font-size: 0.95rem; line-height: 1.5; margin-bottom: 10px;">{{ c.comentario }}</p>
-                            <span class="comment-date" style="font-size: 0.8rem; color: #555;">{{ c.fecha.strftime('%d/%m/%Y %H:%M') }}</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="comment-date" style="font-size: 0.8rem; color: #555;">{{ c.fecha.strftime('%d/%m/%Y %H:%M') }}</span>
+                                {% if current_user.is_authenticated and current_user.es_admin %}
+                                    <form action="{{ url_for('main.admin_toggle_comentario', id_valoracion=c.id_valoracion) }}" method="POST">
+                                        <button type="submit" class="btn btn--secondary {% if c.activo %}btn--danger{% else %}btn--success{% endif %}" style="padding: 4px 10px; font-size: 0.8rem; min-width: auto; height: auto;">
+                                            {% if c.activo %}Ocultar{% else %}Restaurar{% endif %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 {% endfor %}

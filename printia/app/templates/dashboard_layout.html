@@ -49,6 +49,13 @@
             </svg>
             <span>Usuarios</span>
         </a>
+        <a href="{{ url_for('main.admin_moderacion') }}" class="sidebar-link {% if request.endpoint == 'main.admin_moderacion' %}sidebar-link--active{% endif %}">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            <span>Moderación</span>
+        </a>
         {% endif %}
     </aside>
 
