@@ -42,6 +42,13 @@
                 </div>
             </div>
 
+            <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px; margin: 16px 0;">
+                <input type="checkbox" id="terminos" name="terminos" required style="cursor: pointer; width: 18px; height: 18px; accent-color: var(--color-primary); margin: 0;">
+                <label for="terminos" class="form-label" style="margin: 0; cursor: pointer;">
+                    Acepto <a href="{{ url_for('main.terminos') }}" target="_blank" style="color: var(--color-primary); text-decoration: underline; text-decoration-color: var(--color-primary);">términos y condiciones</a>
+                </label>
+            </div>
+
             <button type="submit" class="btn btn--primary btn--full">Crear cuenta</button>
         </form>
 

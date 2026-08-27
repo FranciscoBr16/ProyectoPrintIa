@@ -166,7 +166,7 @@
 
             <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #555;">
                 <span>Subtotal</span>
-                <span>$1000.00</span>
+                <span>US$ {{ plan_pro.precio|int }}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #555;">
                 <span>Impuestos</span>
@@ -177,7 +177,7 @@
 
             <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 1.3rem; color: #111;">
                 <span>Total a Pagar</span>
-                <span>$1000.00</span>
+                <span>US$ {{ plan_pro.precio|int }}</span>
             </div>
             
             <div style="margin-top: 30px; text-align: center;">
@@ -310,7 +310,7 @@
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                     </svg>
-                    <span>Pagar $1000.00 ARS</span>
+                    <span>Pagar US$ {{ plan_pro.precio|int }}</span>
                 </button>
             </form>
         </div>

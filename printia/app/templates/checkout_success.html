@@ -20,7 +20,7 @@
             <h3 style="margin-bottom: 15px; color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 10px;">Detalles de la Transacción</h3>
             <p style="margin-bottom: 8px; color: var(--color-text-secondary);"><strong>ID:</strong> {{ receipt.transaction_id }}</p>
             <p style="margin-bottom: 8px; color: var(--color-text-secondary);"><strong>Fecha:</strong> {{ receipt.date }}</p>
-            <p style="margin-bottom: 8px; color: var(--color-text-secondary);"><strong>Monto:</strong> ${{ receipt.amount }}</p>
+            <p style="margin-bottom: 8px; color: var(--color-text-secondary);"><strong>Monto:</strong> US$ {{ receipt.amount|int }}</p>
             <p style="margin-bottom: 0; color: var(--color-text-secondary);"><strong>Plan:</strong> {{ receipt.plan }}</p>
         </div>
 

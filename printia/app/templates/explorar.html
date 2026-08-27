@@ -24,6 +24,13 @@
                     {% if not modelo.activo %}
                     <div style="position: absolute; top: 10px; left: 10px; background: rgba(255,0,0,0.8); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; z-index: 10;">DADO DE BAJA</div>
                     {% endif %}
+                    {% if current_user.is_authenticated and current_user.es_admin %}
+                        {% if modelo.es_publico %}
+                        <div style="position: absolute; top: 10px; right: 10px; background: rgba(16, 185, 129, 0.9); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 10; letter-spacing: 0.5px;">PÚBLICO</div>
+                        {% else %}
+                        <div style="position: absolute; top: 10px; right: 10px; background: rgba(239, 68, 68, 0.9); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; z-index: 10; letter-spacing: 0.5px;">PRIVADO</div>
+                        {% endif %}
+                    {% endif %}
                     {% if modelo.imagen_url and modelo.imagen_url != 'mock_image.png' and modelo.imagen_url != '' %}
                     <img src="{{ url_for('static', filename='uploads/thumbnails/' + modelo.imagen_url) }}" alt="{{ modelo.titulo }}" style="width: 100%; height: 100%; object-fit: cover; border-top-left-radius: 8px; border-top-right-radius: 8px;">
                     {% else %}

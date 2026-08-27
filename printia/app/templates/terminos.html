@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Términos y Condiciones - PrintIA Solutions{% endblock %}
+
+{% block content %}
+<main class="page-container" style="max-width: 1000px; margin: 40px auto; padding: 48px; background: var(--color-navbar-bg); border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+    <h1 class="page-title text-center" style="margin-bottom: 40px; color: var(--color-text);">Términos y Condiciones</h1>
+
+    <div style="color: var(--color-text); line-height: 1.6; font-size: 1rem;">
+        <h3 style="color: var(--color-text); margin-top: 32px; margin-bottom: 12px;">1. Aceptación de los Términos</h3>
+        <p>Al registrarse y utilizar la plataforma PrintIA Solutions, el usuario acepta los presentes Términos y Condiciones de uso. Esta plataforma ha sido desarrollada con fines académicos y tecnológicos.</p>
+
+        <h3 style="color: var(--color-text); margin-top: 32px; margin-bottom: 12px;">2. Privacidad y Protección de Datos Personales</h3>
+        <p>En cumplimiento con la Ley 25.326 de Protección de Datos Personales de la República Argentina, PrintIA Solutions garantiza que los datos proporcionados durante el registro (como correo electrónico y nombre de usuario) serán almacenados de forma segura. Las contraseñas de los usuarios se encuentran encriptadas mediante algoritmos de hashing, garantizando la privacidad de las credenciales.</p>
+
+        <h3 style="color: var(--color-text); margin-top: 32px; margin-bottom: 12px;">3. Generación mediante Inteligencia Artificial</h3>
+        <p>La plataforma utiliza servicios de Inteligencia Artificial de terceros para la interpretación de texto y la generación de modelos tridimensionales. PrintIA Solutions no garantiza que todos los modelos generados sean físicamente viables para su impresión. Es responsabilidad del usuario verificar la geometría y aplicar los parámetros del laminador (slicer) correspondientes antes de proceder a la fabricación física.</p>
+
+        <h3 style="color: var(--color-text); margin-top: 32px; margin-bottom: 12px;">4. Modelos y Galería Comunitaria</h3>
+        <p>Los modelos generados bajo la modalidad pública podrán ser visualizados y valorados por otros miembros en la Galería Comunitaria de la plataforma. PrintIA Solutions se reserva el derecho de eliminar contenido que se considere inapropiado.</p>
+
+        <h3 style="color: var(--color-text); margin-top: 32px; margin-bottom: 12px;">5. Suscripciones y Entorno de Pagos</h3>
+        <p>La plataforma ofrece un Plan PRO mediante un sistema de suscripción. Se deja constancia de que la pasarela de pagos integrada opera en un entorno de simulación (Sandbox). No se realizarán cargos reales a ninguna tarjeta de crédito ingresada, y las facturas emitidas en formato PDF tienen un valor exclusivamente demostrativo y carecen de validez fiscal.</p>
+
+        <h3 style="color: var(--color-text); margin-top: 32px; margin-bottom: 12px;">6. Limitación de Responsabilidad</h3>
+        <p>Al tratarse de un sistema desarrollado como Proyecto Final de Ingeniería, la plataforma se ofrece "tal cual es". Los administradores no se responsabilizan por tiempos de inactividad de los servidores, interrupciones en las APIs externas o la pérdida de archivos tridimensionales almacenados.</p>
+    </div>
+
+    <div style="text-align: center; margin-top: 48px;">
+        <a href="{{ url_for('auth.register') }}" class="btn btn--primary" style="padding: 16px 40px; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(230, 77, 133, 0.3);">Volver al registro</a>
+    </div>
+</main>
+{% endblock %}

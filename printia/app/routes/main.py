@@ -98,7 +98,7 @@ def explorar():
     sort_by = request.args.get('sort', 'descargas')
 
     if current_user.is_authenticated and current_user.es_admin:
-        query = Modelo.query.filter_by(es_publico=True)
+        query = Modelo.query
     else:
         query = Modelo.query.filter_by(es_publico=True, activo=True)
 
@@ -211,8 +211,8 @@ def generar():
 @login_required
 def modelo(id_modelo):
     modelo_obj = Modelo.query.get_or_404(id_modelo)
-    # Solo el dueño puede verlo si no es público (simplificación por ahora)
-    if not modelo_obj.es_publico and modelo_obj.id_usuario != current_user.id_usuario:
+    # Solo el dueño o un admin pueden verlo si no es público
+    if not modelo_obj.es_publico and modelo_obj.id_usuario != current_user.id_usuario and not current_user.es_admin:
         flash('No tienes permiso para ver este modelo.', 'error')
         return redirect(url_for('main.galeria'))
         
@@ -502,11 +502,16 @@ def planes():
             plan = Plan.query.get(suscripcion.id_plan)
             if plan:
                 plan_nombre = plan.nombre_plan
-    return render_template('planes.html', plan_nombre=plan_nombre)
+    plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
+    return render_template('planes.html', plan_nombre=plan_nombre, plan_pro=plan_pro)
 
 @main_bp.route('/como-funciona')
 def como_funciona():
     return render_template('como_funciona.html')
+
+@main_bp.route('/terminos')
+def terminos():
+    return render_template('terminos.html')
 
 @main_bp.route('/perfil')
 @login_required
@@ -578,7 +583,8 @@ def editar_perfil():
 @main_bp.route('/checkout', methods=['GET'])
 @login_required
 def checkout():
-    return render_template('checkout.html')
+    plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
+    return render_template('checkout.html', plan_pro=plan_pro)
 
 @main_bp.route('/checkout/process', methods=['POST'])
 @login_required
@@ -588,16 +594,11 @@ def checkout_process():
     # Simulamos la aprobación solo para una tarjeta específica
     # Por ejemplo, una tarjeta que termine en 4242 o sea todo 4242
     if card_number == '4242424242424242':
-        # Pago aprobado
         # Buscamos o creamos el plan PRO
         plan_pro = Plan.query.filter_by(nombre_plan='PRO').first()
         if not plan_pro:
             plan_pro = Plan(nombre_plan='PRO', limite_exportaciones_mensual=15, precio=10.00)
             db.session.add(plan_pro)
-            db.session.commit()
-        else:
-            plan_pro.precio = 10.00
-            plan_pro.limite_exportaciones_mensual = 15
             db.session.commit()
             
         # Actualizamos la suscripción del usuario
@@ -638,7 +639,7 @@ def checkout_process():
         # Guardar Factura en BD
         nueva_factura = Factura(
             id_usuario=current_user.id_usuario,
-            monto=1000.0,
+            monto=plan_pro.precio,
             detalle='PRO PrintIA (1 Mes)',
             transaction_id=transaction_id
         )
@@ -647,7 +648,7 @@ def checkout_process():
         
         session['last_receipt'] = {
             'transaction_id': transaction_id,
-            'amount': 1000.0,
+            'amount': float(plan_pro.precio),
             'date': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'user': current_user.nombre_usuario,
             'plan': 'PRO PrintIA (1 Mes)'
@@ -727,7 +728,7 @@ def checkout_receipt():
     
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(60, height - 305, f"Total Pagado: ${receipt['amount']:.2f} ARS")
+    c.drawString(60, height - 305, f"Total Pagado: US$ {int(receipt['amount'])}")
     
     # Mensaje final
     c.setFont("Helvetica-Oblique", 11)
@@ -988,7 +989,7 @@ def descargar_factura(id_factura):
     
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(60, height - 305, f"Total Pagado: ${factura.monto:.2f} ARS")
+    c.drawString(60, height - 305, f"Total Pagado: US$ {int(factura.monto)}")
     
     # Mensaje final
     c.setFont("Helvetica-Oblique", 11)
